@@ -961,3 +961,69 @@ The hero hint now reads: `allow microphone access · chrome or edge · first run
 - ❌ No auto-restart after mic failure. The banner explains recovery; retrying in a loop would re-trigger the permission prompt and read as nagging.
 - ❌ No pulsing/bouncing attention-getters on the stop button. It appears when relevant and sits still.
 - ❌ Tips never instruct posture, breathing, or technique — they prompt play, not pedagogy.
+
+---
+
+## 18. v0.8 — Indian Languages, Centered Landing, Spectrum Visual
+
+Three moves: the language system becomes English + ten Indian languages (with real recognition locales and script-correct specimen fonts), the hero centers (a deliberate brief override of the §5 left-aligned rule), and the landing gains two explanatory elements — a one-word-six-registers visual and a three-step how-it-works strip.
+
+### 18.1 Language system — English + Indian languages only
+
+The v0.5 foreign presets (Mandarin, Vietnamese, Cantonese, Spanish, Japanese) are gone. The picker now reads:
+
+`EN HI BN TA TE MR GU KN ML PA UR`
+
+— English, Hindi, Bangla, Tamil, Telugu, Marathi, Gujarati, Kannada, Malayalam, Punjabi, Urdu. Every preset carries three live fields:
+
+| Field | Effect |
+|-------|--------|
+| `speech` | Passed to `recognition.lang` (`hi-IN`, `bn-IN`, `ta-IN`, `te-IN`, `mr-IN`, `gu-IN`, `kn-IN`, `ml-IN`, `pa-Guru-IN`, `ur-IN`, `en-IN`). Previously hardcoded `en-US` — the v0.5 presets never actually changed recognition. Now they do. |
+| `script` | Picks the specimen font pack: `latin`, `devanagari` (Hindi + Marathi), `bengali`, `tamil`, `telugu`, `gujarati`, `kannada`, `malayalam`, `gurmukhi`, `nastaliq`. |
+| `demo` | Native greeting for the live demo word — `नमस्ते`, `নমস্কার`, `வணக்கம்`, `నమస్తే`, `નમસ્તે`, `ನಮಸ್ತೆ`, `നമസ്തേ`, `ਨਮਸਤੇ`, `آداب`. |
+
+Pitch envelopes are uniform (60–1200 Hz) — the earlier per-language envelope numbers were speculative and have been dropped rather than faked.
+
+### 18.2 Script font packs (`SCRIPT_PACKS`)
+
+The Latin specimen pool can't render Indic scripts — without packs, a Hindi word would fall back to a system font and the whole premise would collapse. Each script therefore declares:
+
+- **Six bucket pools** mapped to faces that genuinely carry the script. Display weight comes from families like Modak, Shrikhand, Galada, Yatra One, and the regional Baloo variants; serif registers from the Tiro family, Rozha One, Rasa, Suranna, and Noto Serifs; light/flowing registers from Kalam, Gayathri, Manjari, Mukta Mahee, Akaya Kanadaka.
+- **A variable family for variable mode** — the Ek Type **Anek** superfamily (Devanagari, Bangla, Tamil, Telugu, Gujarati, Kannada, Malayalam, Gurmukhi), which exposes `wght` 100–800 and `wdth` 75–125. In a script session, loudness → `wght` and pitch → `wdth` (low = wide 125, high = narrow 75); the caption reads `ANEK DEVANAGARI · wght 540 · wdth 96 · 187 Hz`. Urdu has no Anek — Noto Nastaliq Urdu's `wght` 400–700 axis carries the voice alone, and the caption honestly shows one axis.
+- **A glyph** (`अ অ அ అ અ ಅ അ ਅ ا`) shown in the pitch-scale bucket cells instead of `Aa`.
+- **A sample string** used by the preloader so real glyphs are resident before the first word lands.
+
+Packs load **on demand**: picking a language injects one additional Google Fonts stylesheet for that script and preloads its faces. The initial page payload is unchanged for Latin-only visitors.
+
+Sub-word morphing and phoneme spacing silently no-op for Indic words — the existing `[a-zA-Z]` guards fail closed, which is correct: per-letter font switching would break complex-script shaping (conjuncts, matras). Word-level rendering is the honest unit for these scripts.
+
+### 18.3 Matching + passages
+
+- `cleanForMatch` now strips to `\p{L}` (any Unicode letter) instead of `[a-z]`, so reading-mode matching works across scripts. Terminal-punctuation stripping handles the danda `।` and Urdu `۔ ؟ ،`.
+- Two public-domain Indic passages join the library: **Kabir — दोहा** (`lang: 'hi'`) and **Thiruvalluvar — குறள் ௧** (`lang: 'ta'`). Picking a passage now **switches the language first** (a passage card with no `lang` forces English) — otherwise the recognition locale could never match the slots.
+
+### 18.4 Centered landing (brief override)
+
+The user-requested centered design overrides §5's "hero is left-aligned, never centered." The override is the centered-display archetype: massive type on a near-empty surface, no dark mesh, no banned patterns. Hero max-width 880px, everything centered: live demo word, headline, sub, strips, mode grid, hint, passage cards, returning banner, calibration block, placeholder/tips. The specimen feed itself **stays left-flowing** — captured words are content, not chrome.
+
+### 18.5 Spectrum strip (the visual)
+
+`one word · six registers · low to high` — a terracotta SVG arc (rising quadratic, six dots) over the word *voice* set six times: Anton, DM Serif Display, Lora 600, Inter 800, Cormorant Garamond italic, Italianno, each labeled with its bucket name. The entire voice→type premise in one static glance, built from faces already in the payload. `aria-hidden` (decorative; the sub-copy carries the same information). On mobile the arc hides and the six specimens wrap 3×2.
+
+It stays Latin in every language — it is the concept diagram, not the live specimen.
+
+### 18.6 How-it-works strip
+
+Three steps between hairlines: `01 Allow the microphone · 02 Speak, or read a passage aloud · 03 Every word becomes a type specimen`. Mono terracotta numerals, Instrument Serif italic lines. Stacks vertically on mobile.
+
+### 18.7 Bug fixed en route
+
+`els.status` points at the status *text span*; the v0.6 practice code toggled `practice-active` on it instead of the `.status` container, so the practice timer / hit-rate cells never actually displayed. A separate `els.statusBar` ref now carries the class. (Found while auditing, not user-reported — the preview can't run mic sessions, which is how it slipped.)
+
+### Anti-patterns specific to v0.8
+
+- ❌ No flag icons or country imagery on language pills. Two-letter codes in the existing mono register.
+- ❌ No machine-translated UI copy. Chrome stays English; the *voice and specimens* are multilingual. Translating the chrome is real localization work, not a checkbox.
+- ❌ No per-letter morphing in Indic scripts (breaks shaping). Fail-closed is the feature.
+- ❌ No speculative pitch envelopes per language. Uniform until measured.
+- ❌ The spectrum strip never animates. It is a diagram; the live demo word above it is the animation.

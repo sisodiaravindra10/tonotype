@@ -833,6 +833,98 @@
   .ghost:disabled { opacity: 0.35; cursor: not-allowed; }
   .ghost:disabled:hover { background: transparent; color: var(--ink-soft); border-color: var(--line-strong); }
 
+  /* ─────────── centered hero (v0.8) ─────────── */
+  .hero {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 880px;
+    text-align: center;
+  }
+  .hero .sub { margin-left: auto; margin-right: auto; }
+  .live-demo { text-align: center; }
+  .live-demo-trigger { margin: 0 auto; }
+  .live-demo-hint { justify-content: center; }
+  .mode-grid { margin: 0 auto; }
+  .passage-cards { justify-content: center; }
+  .returning-banner { max-width: 640px; margin-left: auto; margin-right: auto; }
+  .calibration { margin-left: auto; margin-right: auto; text-align: center; }
+  .placeholder, .tips { text-align: center; }
+
+  /* ─────────── how-it-works strip ─────────── */
+  .how-strip {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    max-width: 760px;
+    margin: 0 auto 44px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .how-step {
+    flex: 1;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .how-step + .how-step { border-left: 1px solid var(--line); }
+  .hs-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+  }
+  .hs-text {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.3;
+    color: var(--ink-soft);
+  }
+
+  /* ─────────── spectrum strip (one word, six registers) ─────────── */
+  .spectrum-strip {
+    max-width: 760px;
+    margin: 0 auto 48px;
+  }
+  .ss-eyebrow {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 14px;
+  }
+  .ss-arc { display: block; width: 100%; height: auto; margin-bottom: 2px; }
+  .ss-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .ss-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .ss-word {
+    font-size: 30px;
+    line-height: 1;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .ss-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
   .word-text.variable,
   .r-word.variable {
     font-family: 'Fraunces', Georgia, serif;
@@ -1552,6 +1644,11 @@
     .mode-grid { grid-template-columns: 1fr; max-width: none; }
     .passage-list.open { max-height: 700px; }
     .ended-bar .eb-spacer { margin-left: 0; flex-basis: 100%; }
+    .how-strip { flex-direction: column; }
+    .how-step + .how-step { border-left: none; border-top: 1px solid var(--line); }
+    .ss-row { flex-wrap: wrap; row-gap: 18px; }
+    .ss-item { flex-basis: 33%; }
+    .ss-arc { display: none; }
   }
 </style>
 </head>
@@ -1563,7 +1660,7 @@
 <header class="topbar">
   <div class="brand">
     <span class="brand-name">TONOTYPE</span>
-    <span class="brand-version">v0.7</span>
+    <span class="brand-version">v0.8</span>
     <span class="brand-tag">voice <em>becomes</em> type specimen</span>
   </div>
   <div class="status" id="status">
@@ -1629,6 +1726,34 @@
 
     <h1>Speak.<br />Watch your voice<br />become a <span class="accent">typeface</span>.</h1>
     <p class="sub">Tonotype listens to the pitch of your voice and sets each word you say in a font that matches its tone. Low rumbles land in heavy display type, mid registers in editorial serifs, high notes in flowing scripts. Read something aloud — with feeling.</p>
+
+    <div class="spectrum-strip" aria-hidden="true">
+      <div class="ss-eyebrow">one word · six registers · low to high</div>
+      <svg class="ss-arc" viewBox="0 0 600 56" xmlns="http://www.w3.org/2000/svg" fill="none">
+        <path d="M 50 48 Q 300 52 550 10" stroke="#c0431f" stroke-width="1.5" />
+        <circle cx="50" cy="48" r="3" fill="#c0431f" />
+        <circle cx="150" cy="46.5" r="3" fill="#c0431f" />
+        <circle cx="250" cy="43" r="3" fill="#c0431f" />
+        <circle cx="350" cy="37" r="3" fill="#c0431f" />
+        <circle cx="450" cy="26" r="3" fill="#c0431f" />
+        <circle cx="550" cy="10" r="3" fill="#c0431f" />
+      </svg>
+      <div class="ss-row">
+        <span class="ss-item"><span class="ss-word" style="font-family:'Anton',serif;">voice</span><span class="ss-label">bass</span></span>
+        <span class="ss-item"><span class="ss-word" style="font-family:'DM Serif Display',serif;">voice</span><span class="ss-label">baritone</span></span>
+        <span class="ss-item"><span class="ss-word" style="font-family:'Lora',serif;font-weight:600;">voice</span><span class="ss-label">tenor</span></span>
+        <span class="ss-item"><span class="ss-word" style="font-family:'Inter',sans-serif;font-weight:800;">voice</span><span class="ss-label">alto</span></span>
+        <span class="ss-item"><span class="ss-word" style="font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:500;">voice</span><span class="ss-label">soprano</span></span>
+        <span class="ss-item"><span class="ss-word" style="font-family:'Italianno',cursive;">voice</span><span class="ss-label">piccolo</span></span>
+      </div>
+    </div>
+
+    <div class="how-strip">
+      <div class="how-step"><span class="hs-num">01</span><span class="hs-text">Allow the microphone</span></div>
+      <div class="how-step"><span class="hs-num">02</span><span class="hs-text">Speak, or read a passage aloud</span></div>
+      <div class="how-step"><span class="hs-num">03</span><span class="hs-text">Every word becomes a type specimen</span></div>
+    </div>
+
     <div class="mode-grid" id="modeGrid">
       <button class="mode-card primary" data-mode="free" type="button">
         <span class="mc-label">Speak freely</span>
@@ -1855,19 +1980,167 @@
       title: 'Fragment 31',
       text: "He seems to me equal to gods, that man, whoever he is, who sits across from you.",
     },
+    {
+      id: 'kabir',
+      source: 'Kabir',
+      title: 'दोहा',
+      lang: 'hi',
+      text: "बुरा जो देखन मैं चला बुरा न मिलिया कोय जो दिल खोजा आपना मुझसे बुरा न कोय",
+    },
+    {
+      id: 'kural',
+      source: 'Thiruvalluvar',
+      title: 'குறள் ௧',
+      lang: 'ta',
+      text: "அகர முதல எழுத்தெல்லாம் ஆதி பகவன் முதற்றே உலகு",
+    },
   ];
 
-  // Language presets — adjust the *expected* pitch range envelope. The actual
-  // captured range still drives bucket assignment; this is a hint for which
-  // band of frequencies is typical for the language being spoken.
+  // Language presets — English plus the Indian languages Chrome's speech
+  // recognition supports. Each preset carries the recognition locale, the
+  // script its words arrive in (which picks the specimen font pack), and a
+  // native greeting for the live demo word.
   const LANGUAGE_PRESETS = [
-    { id: 'en', label: 'EN',  full: 'English',     minHz: 60,  maxHz: 1200 },
-    { id: 'zh', label: 'ZH',  full: 'Mandarin',    minHz: 75,  maxHz: 1500 }, // tonal — wider top
-    { id: 'vi', label: 'VI',  full: 'Vietnamese',  minHz: 75,  maxHz: 1500 }, // tonal — six tones
-    { id: 'yue', label: 'YUE', full: 'Cantonese',   minHz: 75,  maxHz: 1500 }, // tonal — nine tones
-    { id: 'es', label: 'ES',  full: 'Spanish',     minHz: 55,  maxHz: 900 },  // narrower range, deeper average
-    { id: 'ja', label: 'JA',  full: 'Japanese',    minHz: 80,  maxHz: 1100 }, // pitch accent
+    { id: 'en', label: 'EN', full: 'English',   speech: 'en-IN',      script: 'latin',      demo: 'hello',     minHz: 60, maxHz: 1200 },
+    { id: 'hi', label: 'HI', full: 'Hindi',     speech: 'hi-IN',      script: 'devanagari', demo: 'नमस्ते',     minHz: 60, maxHz: 1200 },
+    { id: 'bn', label: 'BN', full: 'Bangla',    speech: 'bn-IN',      script: 'bengali',    demo: 'নমস্কার',    minHz: 60, maxHz: 1200 },
+    { id: 'ta', label: 'TA', full: 'Tamil',     speech: 'ta-IN',      script: 'tamil',      demo: 'வணக்கம்',   minHz: 60, maxHz: 1200 },
+    { id: 'te', label: 'TE', full: 'Telugu',    speech: 'te-IN',      script: 'telugu',     demo: 'నమస్తే',     minHz: 60, maxHz: 1200 },
+    { id: 'mr', label: 'MR', full: 'Marathi',   speech: 'mr-IN',      script: 'devanagari', demo: 'नमस्कार',    minHz: 60, maxHz: 1200 },
+    { id: 'gu', label: 'GU', full: 'Gujarati',  speech: 'gu-IN',      script: 'gujarati',   demo: 'નમસ્તે',     minHz: 60, maxHz: 1200 },
+    { id: 'kn', label: 'KN', full: 'Kannada',   speech: 'kn-IN',      script: 'kannada',    demo: 'ನಮಸ್ತೆ',     minHz: 60, maxHz: 1200 },
+    { id: 'ml', label: 'ML', full: 'Malayalam', speech: 'ml-IN',      script: 'malayalam',  demo: 'നമസ്തേ',    minHz: 60, maxHz: 1200 },
+    { id: 'pa', label: 'PA', full: 'Punjabi',   speech: 'pa-Guru-IN', script: 'gurmukhi',   demo: 'ਨਮਸਤੇ',     minHz: 60, maxHz: 1200 },
+    { id: 'ur', label: 'UR', full: 'Urdu',      speech: 'ur-IN',      script: 'nastaliq',   demo: 'آداب',      minHz: 60, maxHz: 1200 },
   ];
+
+  // Script font packs — loaded on demand when a non-Latin language is picked,
+  // so the initial page payload stays unchanged. Each pack maps the six pitch
+  // buckets onto faces that actually carry the script's glyphs, names a
+  // variable family for variable mode (the Ek Type "Anek" superfamily covers
+  // every script here except Nastaliq, which falls back to Noto Nastaliq's
+  // weight axis), and provides a sample string so preloading pulls real glyphs.
+  const SCRIPT_PACKS = {
+    devanagari: {
+      glyph: 'अ', sample: 'नमस्ते अआकख',
+      css: 'family=Modak&family=Rozha+One&family=Tiro+Devanagari+Hindi&family=Yatra+One&family=Kalam:wght@400;700&family=Hind:wght@400;600;700&family=Teko:wght@600&family=Anek+Devanagari:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Devanagari', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Modak', weight: 400, style: 'normal' }, { family: 'Hind', weight: 700, style: 'normal' }],
+        baritone: [{ family: 'Rozha One', weight: 400, style: 'normal' }, { family: 'Tiro Devanagari Hindi', weight: 400, style: 'normal' }],
+        tenor:    [{ family: 'Tiro Devanagari Hindi', weight: 400, style: 'normal' }, { family: 'Hind', weight: 600, style: 'normal' }],
+        alto:     [{ family: 'Teko', weight: 600, style: 'normal' }, { family: 'Hind', weight: 700, style: 'normal' }],
+        soprano:  [{ family: 'Kalam', weight: 700, style: 'normal' }, { family: 'Kalam', weight: 400, style: 'normal' }],
+        piccolo:  [{ family: 'Yatra One', weight: 400, style: 'normal' }, { family: 'Kalam', weight: 400, style: 'normal' }],
+      },
+    },
+    bengali: {
+      glyph: 'অ', sample: 'নমস্কার অআকখ',
+      css: 'family=Galada&family=Atma:wght@300;600&family=Baloo+Da+2:wght@400;800&family=Hind+Siliguri:wght@400;600&family=Tiro+Bangla&family=Anek+Bangla:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Bangla', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Da 2', weight: 800, style: 'normal' }, { family: 'Atma', weight: 600, style: 'normal' }],
+        baritone: [{ family: 'Tiro Bangla', weight: 400, style: 'normal' }, { family: 'Galada', weight: 400, style: 'normal' }],
+        tenor:    [{ family: 'Hind Siliguri', weight: 600, style: 'normal' }, { family: 'Tiro Bangla', weight: 400, style: 'normal' }],
+        alto:     [{ family: 'Hind Siliguri', weight: 600, style: 'normal' }, { family: 'Baloo Da 2', weight: 400, style: 'normal' }],
+        soprano:  [{ family: 'Galada', weight: 400, style: 'normal' }, { family: 'Atma', weight: 300, style: 'normal' }],
+        piccolo:  [{ family: 'Atma', weight: 300, style: 'normal' }, { family: 'Galada', weight: 400, style: 'normal' }],
+      },
+    },
+    tamil: {
+      glyph: 'அ', sample: 'வணக்கம் அஆகங',
+      css: 'family=Baloo+Thambi+2:wght@400;800&family=Tiro+Tamil&family=Hind+Madurai:wght@400;600&family=Catamaran:wght@700&family=Meera+Inimai&family=Anek+Tamil:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Tamil', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Thambi 2', weight: 800, style: 'normal' }],
+        baritone: [{ family: 'Tiro Tamil', weight: 400, style: 'normal' }],
+        tenor:    [{ family: 'Hind Madurai', weight: 600, style: 'normal' }, { family: 'Tiro Tamil', weight: 400, style: 'normal' }],
+        alto:     [{ family: 'Catamaran', weight: 700, style: 'normal' }],
+        soprano:  [{ family: 'Meera Inimai', weight: 400, style: 'normal' }],
+        piccolo:  [{ family: 'Baloo Thambi 2', weight: 400, style: 'normal' }, { family: 'Meera Inimai', weight: 400, style: 'normal' }],
+      },
+    },
+    telugu: {
+      glyph: 'అ', sample: 'నమస్తే అఆకఖ',
+      css: 'family=Baloo+Tammudu+2:wght@400;800&family=Tiro+Telugu&family=Hind+Guntur:wght@400;600&family=Mandali&family=Suranna&family=Anek+Telugu:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Telugu', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Tammudu 2', weight: 800, style: 'normal' }],
+        baritone: [{ family: 'Suranna', weight: 400, style: 'normal' }, { family: 'Tiro Telugu', weight: 400, style: 'normal' }],
+        tenor:    [{ family: 'Hind Guntur', weight: 600, style: 'normal' }, { family: 'Tiro Telugu', weight: 400, style: 'normal' }],
+        alto:     [{ family: 'Hind Guntur', weight: 600, style: 'normal' }, { family: 'Mandali', weight: 400, style: 'normal' }],
+        soprano:  [{ family: 'Mandali', weight: 400, style: 'normal' }],
+        piccolo:  [{ family: 'Baloo Tammudu 2', weight: 400, style: 'normal' }],
+      },
+    },
+    gujarati: {
+      glyph: 'અ', sample: 'નમસ્તે અઆકખ',
+      css: 'family=Baloo+Bhai+2:wght@400;800&family=Shrikhand&family=Rasa:wght@300;600&family=Hind+Vadodara:wght@400;700&family=Mukta+Vaani:wght@300&family=Anek+Gujarati:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Gujarati', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Bhai 2', weight: 800, style: 'normal' }, { family: 'Shrikhand', weight: 400, style: 'normal' }],
+        baritone: [{ family: 'Shrikhand', weight: 400, style: 'normal' }, { family: 'Rasa', weight: 600, style: 'normal' }],
+        tenor:    [{ family: 'Rasa', weight: 600, style: 'normal' }],
+        alto:     [{ family: 'Hind Vadodara', weight: 700, style: 'normal' }],
+        soprano:  [{ family: 'Mukta Vaani', weight: 300, style: 'normal' }],
+        piccolo:  [{ family: 'Rasa', weight: 300, style: 'normal' }, { family: 'Mukta Vaani', weight: 300, style: 'normal' }],
+      },
+    },
+    kannada: {
+      glyph: 'ಅ', sample: 'ನಮಸ್ತೆ ಅಆಕಖ',
+      css: 'family=Baloo+Tamma+2:wght@400;800&family=Noto+Serif+Kannada:wght@300;600;900&family=Noto+Sans+Kannada:wght@400;700&family=Akaya+Kanadaka&family=Benne&family=Anek+Kannada:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Kannada', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Tamma 2', weight: 800, style: 'normal' }, { family: 'Noto Serif Kannada', weight: 900, style: 'normal' }],
+        baritone: [{ family: 'Noto Serif Kannada', weight: 600, style: 'normal' }],
+        tenor:    [{ family: 'Noto Serif Kannada', weight: 300, style: 'normal' }, { family: 'Noto Serif Kannada', weight: 600, style: 'normal' }],
+        alto:     [{ family: 'Noto Sans Kannada', weight: 700, style: 'normal' }],
+        soprano:  [{ family: 'Akaya Kanadaka', weight: 400, style: 'normal' }],
+        piccolo:  [{ family: 'Benne', weight: 400, style: 'normal' }, { family: 'Baloo Tamma 2', weight: 400, style: 'normal' }],
+      },
+    },
+    malayalam: {
+      glyph: 'അ', sample: 'നമസ്തേ അആകഖ',
+      css: 'family=Baloo+Chettan+2:wght@400;800&family=Noto+Serif+Malayalam:wght@300;600;900&family=Manjari:wght@100;400;700&family=Gayathri:wght@100;400;700&family=Anek+Malayalam:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Malayalam', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Chettan 2', weight: 800, style: 'normal' }, { family: 'Noto Serif Malayalam', weight: 900, style: 'normal' }],
+        baritone: [{ family: 'Noto Serif Malayalam', weight: 600, style: 'normal' }],
+        tenor:    [{ family: 'Manjari', weight: 400, style: 'normal' }, { family: 'Noto Serif Malayalam', weight: 600, style: 'normal' }],
+        alto:     [{ family: 'Manjari', weight: 700, style: 'normal' }],
+        soprano:  [{ family: 'Gayathri', weight: 100, style: 'normal' }],
+        piccolo:  [{ family: 'Manjari', weight: 100, style: 'normal' }, { family: 'Gayathri', weight: 400, style: 'normal' }],
+      },
+    },
+    gurmukhi: {
+      glyph: 'ਅ', sample: 'ਨਮਸਤੇ ਅਆਕਖ',
+      css: 'family=Baloo+Paaji+2:wght@400;800&family=Tiro+Gurmukhi&family=Mukta+Mahee:wght@200;400;600;700&family=Anek+Gurmukhi:wdth,wght@75..125,100..800',
+      variable: { family: 'Anek Gurmukhi', wght: [100, 800], wdth: [75, 125] },
+      buckets: {
+        bass:     [{ family: 'Baloo Paaji 2', weight: 800, style: 'normal' }],
+        baritone: [{ family: 'Tiro Gurmukhi', weight: 400, style: 'normal' }],
+        tenor:    [{ family: 'Tiro Gurmukhi', weight: 400, style: 'normal' }, { family: 'Mukta Mahee', weight: 600, style: 'normal' }],
+        alto:     [{ family: 'Mukta Mahee', weight: 700, style: 'normal' }],
+        soprano:  [{ family: 'Mukta Mahee', weight: 200, style: 'normal' }],
+        piccolo:  [{ family: 'Baloo Paaji 2', weight: 400, style: 'normal' }, { family: 'Mukta Mahee', weight: 200, style: 'normal' }],
+      },
+    },
+    nastaliq: {
+      glyph: 'ا', sample: 'آداب اب پت',
+      css: 'family=Noto+Nastaliq+Urdu:wght@400..700&family=Gulzar',
+      variable: { family: 'Noto Nastaliq Urdu', wght: [400, 700], wdth: null },
+      buckets: {
+        bass:     [{ family: 'Noto Nastaliq Urdu', weight: 700, style: 'normal' }],
+        baritone: [{ family: 'Noto Nastaliq Urdu', weight: 600, style: 'normal' }],
+        tenor:    [{ family: 'Noto Nastaliq Urdu', weight: 500, style: 'normal' }],
+        alto:     [{ family: 'Noto Nastaliq Urdu', weight: 400, style: 'normal' }],
+        soprano:  [{ family: 'Gulzar', weight: 400, style: 'normal' }],
+        piccolo:  [{ family: 'Gulzar', weight: 400, style: 'normal' }],
+      },
+    },
+  };
+
+  const loadedScripts = new Set();
 
   const FINGERPRINT_KEY = 'tonotype.fingerprint.v1';
   const FINGERPRINT_TTL_DAYS = 30;
@@ -1943,6 +2216,7 @@
     main:          $('main'),
     dot:           $('dot'),
     status:        $('statusText'),
+    statusBar:     $('status'),
     livePitch:     $('livePitch'),
     liveBucket:    $('liveBucket'),
     count:         $('count'),
@@ -2038,7 +2312,9 @@
   }
 
   function pickFont(bucket) {
-    return bucket.fonts[Math.floor(Math.random() * bucket.fonts.length)];
+    const pack = SCRIPT_PACKS[state.language.script];
+    const pool = pack ? pack.buckets[bucket.name] : bucket.fonts;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   /* ─────────── SCALE UI ─────────── */
@@ -2064,10 +2340,11 @@
       cell.dataset.bucket = b.name;
       cell.style.flexBasis = widthPct + '%';
 
-      const sample = b.fonts[0];
+      const pack = SCRIPT_PACKS[state.language.script];
+      const sample = pack ? pack.buckets[b.name][0] : b.fonts[0];
       const glyph = document.createElement('span');
       glyph.className = 'bucket-glyph';
-      glyph.textContent = 'Aa';
+      glyph.textContent = pack ? pack.glyph : 'Aa';
       glyph.style.fontFamily = `'${sample.family}', serif`;
       glyph.style.fontWeight = sample.weight;
       glyph.style.fontStyle = sample.style;
@@ -2134,7 +2411,12 @@
       btn.className = 'passage-card';
       btn.dataset.passage = p.id;
       btn.innerHTML = `<span class="pc-source">${p.source}</span><span class="pc-title">${p.title}</span>`;
-      btn.addEventListener('click', () => startSession('reading', p.id));
+      btn.addEventListener('click', () => {
+        // The recognition locale must match the passage's language, or no
+        // spoken word will ever match a slot.
+        switchLanguage(p.lang || 'en');
+        startSession('reading', p.id);
+      });
       els.passageCards.appendChild(btn);
     });
 
@@ -2160,18 +2442,71 @@
     });
   }
 
+  function getScriptPack() {
+    return SCRIPT_PACKS[state.language.script] || null;
+  }
+
+  // Inject a script's Google Fonts stylesheet the first time its language is
+  // picked, and preload real glyphs so the first captured word doesn't flash
+  // a system fallback.
+  function loadScriptPack(script) {
+    const pack = SCRIPT_PACKS[script];
+    if (!pack || loadedScripts.has(script)) return;
+    loadedScripts.add(script);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?${pack.css}&display=swap`;
+    document.head.appendChild(link);
+
+    const seen = new Set();
+    Object.values(pack.buckets).flat().forEach((f) => {
+      const key = `${f.family}|${f.weight}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const s = document.createElement('span');
+      s.textContent = pack.sample;
+      s.style.fontFamily = `'${f.family}', serif`;
+      s.style.fontWeight = f.weight;
+      s.style.fontSize = '40px';
+      els.preload.appendChild(s);
+    });
+    const v = document.createElement('span');
+    v.textContent = pack.sample;
+    v.style.fontFamily = `'${pack.variable.family}', serif`;
+    v.style.fontSize = '40px';
+    els.preload.appendChild(v);
+  }
+
+  // Sync everything that reflects the active language: pill, scale glyphs,
+  // and the live demo word in its script's variable face.
+  function applyLanguageUI() {
+    els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
+      b.classList.toggle('active', b.dataset.lang === state.language.id);
+    });
+    loadScriptPack(state.language.script);
+    els.liveDemoWord.textContent = state.language.demo;
+    const pack = getScriptPack();
+    if (pack) {
+      els.liveDemoWord.style.fontFamily = `'${pack.variable.family}', serif`;
+      els.liveDemoWord.style.fontVariationSettings = pack.variable.wdth ? '"wdth" 100' : '';
+      els.liveDemoWord.style.fontWeight = '500';
+    } else {
+      els.liveDemoWord.style.fontFamily = '';
+      els.liveDemoWord.style.fontVariationSettings = '';
+      els.liveDemoWord.style.fontWeight = '';
+    }
+    rebuildScale();
+  }
+
   function switchLanguage(id) {
     const preset = LANGUAGE_PRESETS.find((p) => p.id === id);
     if (!preset || state.listening) return;
     state.language = preset;
-    els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
-      b.classList.toggle('active', b.dataset.lang === id);
-    });
     // Clear any prior calibration on language switch — different language,
     // potentially different speaker, definitely different expectations.
     state.calibration.pMin = null;
     state.calibration.pMax = null;
-    rebuildScale();
+    applyLanguageUI();
   }
 
   /* ─────────── PHONEME HELPER ─────────── */
@@ -2457,7 +2792,7 @@
     state.phase = 'idle';
     state.listening = false;
     setStatus('session complete', false);
-    els.status.classList.remove('practice-active');
+    els.statusBar.classList.remove('practice-active');
     hideTargetBand();
 
     // Compute metrics. If the user stopped early, report the real elapsed
@@ -2728,21 +3063,34 @@
       liveDemoSmoothedPitch = pitch;
     }
 
-    const wght = mapRMSToWght(liveDemoSmoothedRMS);
-    // For opsz, use pitch if we have one; otherwise a neutral middle value.
+    const pack = getScriptPack();
+    const wght = pack
+      ? mapRMSToWghtRange(liveDemoSmoothedRMS, pack.variable.wght[0], pack.variable.wght[1])
+      : mapRMSToWght(liveDemoSmoothedRMS);
+    // Second axis: opsz for Fraunces, wdth for the Anek script families.
     let opsz = 60;
+    let wdth = 100;
     if (pitch > MIN_HZ && pitch < MAX_HZ) {
       opsz = mapPitchToOpsz(pitch);
+      wdth = mapPitchToWdth(pitch);
     }
 
     els.liveDemoWord.style.fontWeight = Math.round(wght);
-    els.liveDemoWord.style.fontVariationSettings =
-      `"opsz" ${opsz.toFixed(1)}, "SOFT" 0, "WONK" 0`;
+    if (pack) {
+      els.liveDemoWord.style.fontVariationSettings =
+        pack.variable.wdth ? `"wdth" ${wdth.toFixed(1)}` : '';
+    } else {
+      els.liveDemoWord.style.fontVariationSettings =
+        `"opsz" ${opsz.toFixed(1)}, "SOFT" 0, "WONK" 0`;
+    }
 
     // Readout — only show when we have signal worth showing
     if (liveDemoSmoothedRMS > 0.008) {
+      const second = pack
+        ? (pack.variable.wdth ? ` · wdth ${Math.round(wdth)}` : '')
+        : ` · opsz ${Math.round(opsz)}`;
       els.liveDemoReadout.textContent =
-        `· wght ${Math.round(wght)} · opsz ${Math.round(opsz)}` +
+        `· wght ${Math.round(wght)}` + second +
         (pitch > MIN_HZ ? ` · ${Math.round(pitch)} Hz` : '');
     } else {
       els.liveDemoReadout.textContent = '';
@@ -2835,10 +3183,7 @@
       state.calibration.pMin = payload.r[0];
       state.calibration.pMax = payload.r[1];
     }
-    rebuildScale();
-    els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
-      b.classList.toggle('active', b.dataset.lang === state.language.id);
-    });
+    applyLanguageUI();
     // Hide hero — this is a viewing page now
     els.main.classList.add('listening', 'has-words');
     setStatus('viewing shared specimen', false);
@@ -3136,7 +3481,7 @@
     }
     if (state.mode === 'practice') {
       showTargetBand(state.practice.targetMin, state.practice.targetMax);
-      els.status.classList.add('practice-active');
+      els.statusBar.classList.add('practice-active');
     }
   }
 
@@ -3286,7 +3631,8 @@
   }
 
   function cleanForMatch(s) {
-    return s.toLowerCase().replace(/[^a-z']/g, '');
+    // Keep letters in any script (Devanagari, Tamil, Bengali, …), drop the rest.
+    return s.toLowerCase().replace(/[^\p{L}']/gu, '');
   }
 
   function maxLevDist(len) {
@@ -3403,7 +3749,7 @@
     recognition = new SR();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = state.language.speech || 'en-IN';
 
     recognition.onresult = (evt) => {
       if (state.phase !== 'capturing') return;
@@ -3466,7 +3812,7 @@
   }
 
   function renderFreeWord(rawWord, pitch) {
-    const word = rawWord.replace(/[\.,!?;:]+$/, '');
+    const word = rawWord.replace(/[\.,!?;:।۔؟،]+$/, '');
     if (!word) return;
 
     const letterData = computeLetterPitches(word);
@@ -3573,6 +3919,26 @@
     return 200 + t * 700;
   }
 
+  // RMS → arbitrary weight range (each script pack declares its own).
+  function mapRMSToWghtRange(rms, min, max) {
+    const clamped = Math.max(0.005, Math.min(0.25, rms));
+    const minL = Math.log(0.005);
+    const maxL = Math.log(0.25);
+    const t = (Math.log(clamped) - minL) / (maxL - minL);
+    return min + t * (max - min);
+  }
+
+  // Pitch → wdth (125 wide → 75 narrow). Low pitch spreads the letterforms,
+  // high pitch condenses them — the Anek families' second axis.
+  function mapPitchToWdth(pitch) {
+    const { min, max } = getActiveRange();
+    const minL = Math.log(min);
+    const maxL = Math.log(max);
+    const clamped = Math.max(min, Math.min(max, pitch));
+    const t = (Math.log(clamped) - minL) / (maxL - minL);
+    return 125 - t * 50;
+  }
+
   // Within-word pitch variance (coefficient of variation) → SOFT (0 → 100).
   // Monotone delivery stays sharp; wavering voice softens the edges.
   function mapVarianceToSOFT(letterPitches) {
@@ -3602,14 +3968,18 @@
   }
 
   function renderVariableWord(rawWord, pitch) {
-    const word = rawWord.replace(/[\.,!?;:]+$/, '');
+    const word = rawWord.replace(/[\.,!?;:।۔؟،]+$/, '');
     if (!word) return;
 
     const rms = getRecentMedianRMS();
     const letterPitches = computeLetterPitches(word);
 
+    const pack = getScriptPack();
     const opsz = mapPitchToOpsz(pitch);
-    const wght = mapRMSToWght(rms);
+    const wght = pack
+      ? mapRMSToWghtRange(rms, pack.variable.wght[0], pack.variable.wght[1])
+      : mapRMSToWght(rms);
+    const wdth = pack && pack.variable.wdth ? mapPitchToWdth(pitch) : null;
     const soft = mapVarianceToSOFT(letterPitches);
     const wonk = mapWobbleToWONK(letterPitches);
 
@@ -3632,25 +4002,45 @@
     // poster export resolves it correctly (getComputedStyle returns wght).
     // opsz/SOFT/WONK go through font-variation-settings (canvas drops these).
     w.style.fontWeight = Math.round(wght);
-    w.style.fontVariationSettings =
-      `"opsz" ${opsz.toFixed(1)}, "SOFT" ${soft.toFixed(0)}, "WONK" ${wonk.toFixed(2)}`;
+    if (pack) {
+      // Indic scripts ride their Anek family: loudness → wght, pitch → wdth.
+      // (Nastaliq has no wdth axis; weight alone carries the voice.)
+      w.style.fontFamily = `'${pack.variable.family}', serif`;
+      w.style.fontVariationSettings = wdth !== null ? `"wdth" ${wdth.toFixed(1)}` : '';
+    } else {
+      w.style.fontVariationSettings =
+        `"opsz" ${opsz.toFixed(1)}, "SOFT" ${soft.toFixed(0)}, "WONK" ${wonk.toFixed(2)}`;
+    }
     block.appendChild(w);
 
     const meta = document.createElement('span');
     meta.className = 'word-meta';
-    meta.innerHTML =
-      `<span class="bucket-tag">FRAUNCES</span>` +
-      `<span class="axis-readout">` +
-        `<span class="axis-key">wght</span>${wght.toFixed(0)}` +
+    if (pack) {
+      meta.innerHTML =
+        `<span class="bucket-tag">${pack.variable.family.toUpperCase()}</span>` +
+        `<span class="axis-readout">` +
+          `<span class="axis-key">wght</span>${wght.toFixed(0)}` +
+          (wdth !== null
+            ? `<span class="axis-sep">·</span><span class="axis-key">wdth</span>${wdth.toFixed(0)}`
+            : '') +
+        `</span>` +
         `<span class="axis-sep">·</span>` +
-        `<span class="axis-key">opsz</span>${opsz.toFixed(0)}` +
+        `${Math.round(pitch)} Hz`;
+    } else {
+      meta.innerHTML =
+        `<span class="bucket-tag">FRAUNCES</span>` +
+        `<span class="axis-readout">` +
+          `<span class="axis-key">wght</span>${wght.toFixed(0)}` +
+          `<span class="axis-sep">·</span>` +
+          `<span class="axis-key">opsz</span>${opsz.toFixed(0)}` +
+          `<span class="axis-sep">·</span>` +
+          `<span class="axis-key">SOFT</span>${soft.toFixed(0)}` +
+          `<span class="axis-sep">·</span>` +
+          `<span class="axis-key">WONK</span>${wonk.toFixed(2)}` +
+        `</span>` +
         `<span class="axis-sep">·</span>` +
-        `<span class="axis-key">SOFT</span>${soft.toFixed(0)}` +
-        `<span class="axis-sep">·</span>` +
-        `<span class="axis-key">WONK</span>${wonk.toFixed(2)}` +
-      `</span>` +
-      `<span class="axis-sep">·</span>` +
-      `${Math.round(pitch)} Hz`;
+        `${Math.round(pitch)} Hz`;
+    }
     block.appendChild(meta);
 
     els.specimen.appendChild(block);
@@ -3768,7 +4158,7 @@
     interimPitch.clear();
     els.main.classList.remove('listening', 'has-words', 'calibrating', 'reading-mode');
     if (document.body.classList.contains('stage-mode')) exitStageMode();
-    els.status.classList.remove('practice-active');
+    els.statusBar.classList.remove('practice-active');
     hideTargetBand();
     setStatus('offline', false);
     els.livePitch.textContent = '— hz';
@@ -3812,7 +4202,7 @@
           if (state.mode === 'reading') renderPassage();
           if (state.mode === 'practice') {
             showTargetBand(state.practice.targetMin, state.practice.targetMax);
-            els.status.classList.add('practice-active');
+            els.statusBar.classList.add('practice-active');
           }
         }, 350);
       } else {
@@ -4128,11 +4518,7 @@
     showReturningBanner(fp);
   }
 
-  rebuildScale();
-  // After rebuildScale ran, sync the active language pill.
-  els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
-    b.classList.toggle('active', b.dataset.lang === state.language.id);
-  });
+  applyLanguageUI();
 
   // If URL hash carries a shared specimen, render it directly.
   tryRestoreFromHash();
