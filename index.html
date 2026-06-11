@@ -393,9 +393,20 @@
 
   /* ─────────── passage selector (hero) ─────────── */
   .passage-list {
-    margin-top: 44px;
-    border-top: 1px solid var(--line);
-    padding-top: 28px;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    border-top: 1px solid transparent;
+    padding-top: 0;
+    transition: max-height 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.3s ease, margin-top 0.3s ease, padding-top 0.3s ease, border-top-color 0.3s ease;
+  }
+  .passage-list.open {
+    max-height: 440px;
+    opacity: 1;
+    margin-top: 36px;
+    border-top-color: var(--line);
+    padding-top: 24px;
   }
   .passage-list-label {
     font-family: var(--mono);
@@ -682,36 +693,145 @@
     align-items: center;
   }
 
-  /* ─────────── variable mode ─────────── */
-  .start-row {
-    display: flex;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 18px;
+  /* ─────────── mode grid (hero) ─────────── */
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-width: 640px;
   }
-  .start-link {
-    background: none;
-    border: none;
-    padding: 0;
+  .mode-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 18px 20px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
     cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+    transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+    min-height: 84px;
+  }
+  .mode-card:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+    transform: translateY(-2px);
+  }
+  .mode-card.primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .mode-card.primary:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .mode-card:disabled { opacity: 0.5; cursor: wait; }
+  .mc-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .mc-desc {
     font-family: var(--serif);
     font-style: italic;
-    font-weight: 400;
-    font-size: 18px;
-    color: var(--ink-soft);
-    transition: color 0.2s ease, transform 0.2s ease;
-    letter-spacing: 0;
-    text-transform: none;
+    font-size: 15px;
+    line-height: 1.25;
+    color: var(--ink-mute);
+    transition: color 0.22s ease, opacity 0.22s ease;
   }
-  .start-link:hover {
+  .mode-card:hover:not(:disabled) .mc-desc,
+  .mode-card.primary .mc-desc { color: inherit; opacity: 0.75; }
+
+  /* ─────────── stop control (topbar) ─────────── */
+  .stop-btn {
+    display: none;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
     color: var(--accent);
-    transform: translateX(2px);
+    background: transparent;
+    border: 1px solid var(--accent);
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    margin-left: 6px;
   }
-  .start-link .arrow {
-    display: inline-block;
-    transition: transform 0.2s ease;
+  .stop-btn.show { display: inline-block; }
+  .stop-btn:hover { background: var(--accent); color: var(--bg); }
+
+  /* ─────────── session-ended bar ─────────── */
+  .ended-bar {
+    display: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 18px;
+    border: 1px solid var(--line-strong);
+    margin-bottom: 44px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
   }
-  .start-link:hover .arrow { transform: translateX(4px); }
+  .ended-bar.show { display: flex; }
+  .ended-bar .eb-spacer { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ─────────── mic-blocked recovery banner ─────────── */
+  .mic-banner {
+    display: none;
+    border-left: 2px solid var(--accent);
+    padding: 14px 16px;
+    margin-bottom: 36px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .mic-banner.show { display: block; }
+  .mic-banner strong { color: var(--accent); font-weight: 500; }
+  .mic-banner button {
+    background: none;
+    border: none;
+    color: var(--ink-mute);
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+  }
+  .mic-banner button:hover { color: var(--accent); }
+
+  /* ─────────── rotating tips (listening empty state) ─────────── */
+  .tips {
+    display: none;
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  main.listening .tips { display: block; }
+  main.has-words .tips,
+  main.calibrating .tips,
+  main.reading-mode .tips { display: none; }
+
+  /* ─────────── disabled footer actions ─────────── */
+  .ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+  .ghost:disabled:hover { background: transparent; color: var(--ink-soft); border-color: var(--line-strong); }
 
   .word-text.variable,
   .r-word.variable {
@@ -971,23 +1091,6 @@
   main.listening .live-demo { display: none; }
 
   /* ─────────── practice mode (clinical / vocal training) ─────────── */
-  .practice-link {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font-family: var(--serif);
-    font-style: italic;
-    font-weight: 400;
-    font-size: 18px;
-    color: var(--ink-soft);
-    transition: color 0.2s ease, transform 0.2s ease;
-    letter-spacing: 0;
-    text-transform: none;
-  }
-  .practice-link:hover { color: var(--accent); transform: translateX(2px); }
-  .practice-link .arrow { display: inline-block; transition: transform 0.2s ease; }
-  .practice-link:hover .arrow { transform: translateX(4px); }
 
   /* target band overlaid on the scale */
   .target-band {
@@ -1446,6 +1549,9 @@
     .reading-header .rh-progress { margin-left: 0; flex-basis: 100%; }
     .cm-panel { padding: 28px 22px 22px; }
     .footer-actions { flex-wrap: wrap; justify-content: flex-end; }
+    .mode-grid { grid-template-columns: 1fr; max-width: none; }
+    .passage-list.open { max-height: 700px; }
+    .ended-bar .eb-spacer { margin-left: 0; flex-basis: 100%; }
   }
 </style>
 </head>
@@ -1457,7 +1563,7 @@
 <header class="topbar">
   <div class="brand">
     <span class="brand-name">TONOTYPE</span>
-    <span class="brand-version">v0.1</span>
+    <span class="brand-version">v0.7</span>
     <span class="brand-tag">voice <em>becomes</em> type specimen</span>
   </div>
   <div class="status" id="status">
@@ -1470,6 +1576,7 @@
     <span class="practice-timer-cell" id="practiceTimer">0:00</span>
     <span class="status-sep practice-sep">/</span>
     <span class="practice-hit-cell" id="practiceHit">in-target —%</span>
+    <button class="stop-btn" id="stopBtn" type="button" title="Stop the session (Esc)">stop</button>
   </div>
 </header>
 
@@ -1497,6 +1604,16 @@
 </section>
 
 <main id="main">
+  <div class="ended-bar" id="endedBar">
+    <span class="eb-text" id="ebText">session ended</span>
+    <span class="eb-spacer">
+      <button id="ebResume" class="ghost" type="button">Keep speaking</button>
+      <button id="ebNew" class="ghost" type="button">New session</button>
+    </span>
+  </div>
+
+  <div class="mic-banner" id="micBanner"><strong>Microphone blocked.</strong> Click the lock icon in your address bar, allow the microphone, then reload this page.<button id="micDismiss" type="button">dismiss</button></div>
+
   <div class="hero" id="hero">
     <div class="live-demo" id="liveDemo">
       <button class="live-demo-trigger" id="liveDemoTrigger" type="button" aria-label="Activate live preview">
@@ -1512,12 +1629,25 @@
 
     <h1>Speak.<br />Watch your voice<br />become a <span class="accent">typeface</span>.</h1>
     <p class="sub">Tonotype listens to the pitch of your voice and sets each word you say in a font that matches its tone. Low rumbles land in heavy display type, mid registers in editorial serifs, high notes in flowing scripts. Read something aloud — with feeling.</p>
-    <div class="start-row">
-      <button class="start" id="startBtn">Start listening</button>
-      <button class="start-link" id="startVariableBtn" type="button">or start in <em>variable</em> mode <span class="arrow">→</span></button>
-      <button class="practice-link" id="startPracticeBtn" type="button">practice with a <em>pitch target</em> <span class="arrow">→</span></button>
+    <div class="mode-grid" id="modeGrid">
+      <button class="mode-card primary" data-mode="free" type="button">
+        <span class="mc-label">Speak freely</span>
+        <span class="mc-desc">Every word lands in a font matched to your pitch</span>
+      </button>
+      <button class="mode-card" data-mode="reading" type="button">
+        <span class="mc-label">Read a passage</span>
+        <span class="mc-desc">Words light up as you read them aloud</span>
+      </button>
+      <button class="mode-card" data-mode="variable" type="button">
+        <span class="mc-label">Variable type</span>
+        <span class="mc-desc">One typeface, bent live by four voice signals</span>
+      </button>
+      <button class="mode-card" data-mode="practice" type="button">
+        <span class="mc-label">Practice</span>
+        <span class="mc-desc">Hold a target pitch range, track your hit-rate</span>
+      </button>
     </div>
-    <p class="hint">Allow microphone access · best in chrome or edge</p>
+    <p class="hint">Allow microphone access · chrome or edge · first run includes an 8-second voice warm-up</p>
 
     <div class="returning-banner" id="returningBanner">
       <span><span class="rb-key">Returning voice</span><span id="rbRange">— Hz</span></span>
@@ -1525,8 +1655,8 @@
       <button class="rb-link" id="rbForget" type="button">forget &amp; recalibrate</button>
     </div>
 
-    <div class="passage-list">
-      <div class="passage-list-label">— or read aloud —</div>
+    <div class="passage-list" id="passageList">
+      <div class="passage-list-label">pick a passage to read aloud</div>
       <div class="passage-cards" id="passageCards"></div>
     </div>
   </div>
@@ -1539,6 +1669,7 @@
   </div>
 
   <div class="placeholder">say something.</div>
+  <div class="tips" id="tips"></div>
   <div class="specimen" id="specimen"></div>
 
   <div class="reading" id="reading">
@@ -1796,8 +1927,16 @@
 
   const $ = (id) => document.getElementById(id);
   const els = {
-    startBtn:        $('startBtn'),
-    startVariableBtn: $('startVariableBtn'),
+    modeGrid:        $('modeGrid'),
+    passageList:     $('passageList'),
+    stopBtn:         $('stopBtn'),
+    endedBar:        $('endedBar'),
+    ebText:          $('ebText'),
+    ebResume:        $('ebResume'),
+    ebNew:           $('ebNew'),
+    micBanner:       $('micBanner'),
+    micDismiss:      $('micDismiss'),
+    tips:            $('tips'),
     clearBtn:        $('clearBtn'),
     exportBtn:       $('exportBtn'),
     specimen:      $('specimen'),
@@ -1836,7 +1975,6 @@
     rbMeta:        $('rbMeta'),
     rbForget:      $('rbForget'),
     // practice mode
-    startPracticeBtn: $('startPracticeBtn'),
     status:        $('status'),
     practiceTimer: $('practiceTimer'),
     practiceHit:   $('practiceHit'),
@@ -2322,8 +2460,10 @@
     els.status.classList.remove('practice-active');
     hideTargetBand();
 
-    // Compute metrics
-    const totalSec = p.durationS;
+    // Compute metrics. If the user stopped early, report the real elapsed
+    // time instead of the planned duration.
+    const elapsedS = p.startedAt ? Math.min(p.durationS, Math.round((performance.now() - p.startedAt) / 1000)) : 0;
+    const totalSec = elapsedS > 0 ? elapsedS : p.durationS;
     const hitPct = p.totalFrames ? Math.round((p.hitFrames / p.totalFrames) * 100) : 0;
     const avgPitch = p.pitches.length
       ? Math.round(p.pitches.reduce((a, b) => a + b, 0) / p.pitches.length)
@@ -2347,9 +2487,13 @@
     };
 
     saveSession(stats);
-    showPracticeResults(stats);
     // Stop the running mic / speech recognition
     teardownAudio();
+    stopTips();
+    els.stopBtn.classList.remove('show');
+    showEndedBar(`practice complete · ${stats.hitPct}% in target`, { showResume: false });
+    refreshActions();
+    showPracticeResults(stats);
   }
 
   function showPracticeResults(stats) {
@@ -2486,8 +2630,9 @@
     }
   }
 
-  // Clean teardown of mic + speech recognition (used at end of practice)
+  // Clean teardown of mic + speech recognition (any session end)
   function teardownAudio() {
+    loopRunning = false;
     try { if (recognition) { recognition.onend = null; recognition.stop(); } } catch (e) {}
     try { if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
     try { if (audioCtx) audioCtx.close(); } catch (e) {}
@@ -2732,12 +2877,19 @@
       els.specimen.appendChild(block);
     });
     els.count.textContent = String(state.count).padStart(3, '0');
+    // Escape hatch: a shared specimen must never be a dead end.
+    showEndedBar(`shared specimen · ${String(state.count).padStart(3, '0')} words`, {
+      showResume: false,
+      newLabel: 'Start your own',
+    });
+    refreshActions();
   }
 
   /* ─────────── AUDIO / PITCH ─────────── */
 
   let audioCtx, analyser, mediaStream;
   let buf;
+  let loopRunning = false;
   let smoothedPitch = 0;
   let smoothedRMS = 0;
   const pitchHistory = [];
@@ -2759,10 +2911,12 @@
     analyser.fftSize = 2048;
     src.connect(analyser);
     buf = new Float32Array(analyser.fftSize);
+    loopRunning = true;
     requestAnimationFrame(loop);
   }
 
   function loop(ts) {
+    if (!loopRunning) return;
     if (ts - lastDetectAt > 40) {
       lastDetectAt = ts;
       analyser.getFloatTimeDomainData(buf);
@@ -3113,6 +3267,7 @@
     }
 
     updateReadingProgress();
+    refreshActions();
     slot.el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }
 
@@ -3284,6 +3439,13 @@
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
         setStatus('mic blocked', false);
         state.listening = false;
+        state.phase = 'idle';
+        teardownAudio();
+        stopTips();
+        els.stopBtn.classList.remove('show');
+        els.main.classList.remove('listening', 'calibrating');
+        setModeBusy(false);
+        showMicBanner();
       } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
         console.warn('speech error', e.error);
       }
@@ -3383,6 +3545,7 @@
     block.appendChild(meta);
 
     els.specimen.appendChild(block);
+    refreshActions();
     block.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
   }
 
@@ -3491,6 +3654,7 @@
     block.appendChild(meta);
 
     els.specimen.appendChild(block);
+    refreshActions();
     block.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
   }
 
@@ -3520,6 +3684,100 @@
     }
   }
 
+  /* ─────────── SESSION LIFECYCLE HELPERS ─────────── */
+
+  function setModeBusy(busy) {
+    els.modeGrid.querySelectorAll('.mode-card').forEach((c) => { c.disabled = busy; });
+  }
+
+  const TIPS = [
+    'try a low rumble',
+    'now whisper something',
+    'sing one note and hold it',
+    'shout a single word',
+    'say a long word, slowly',
+  ];
+  let tipsTimer = null;
+  let tipIdx = 0;
+  function startTips() {
+    stopTips();
+    tipIdx = 0;
+    els.tips.textContent = 'tip · ' + TIPS[0];
+    tipsTimer = setInterval(() => {
+      tipIdx = (tipIdx + 1) % TIPS.length;
+      els.tips.textContent = 'tip · ' + TIPS[tipIdx];
+    }, 4000);
+  }
+  function stopTips() {
+    if (tipsTimer) { clearInterval(tipsTimer); tipsTimer = null; }
+  }
+
+  // Share / Export only make sense once at least one word exists.
+  function refreshActions() {
+    const hasWords = !!document.querySelector('.specimen .word-block, .r-passage .r-slot.matched');
+    els.shareBtn.disabled = !hasWords;
+    els.exportBtn.disabled = !hasWords;
+  }
+
+  function showMicBanner() {
+    els.micBanner.classList.add('show');
+    els.micBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function showEndedBar(text, opts = {}) {
+    els.ebText.textContent = text;
+    els.ebResume.style.display = opts.showResume === false ? 'none' : '';
+    els.ebNew.textContent = opts.newLabel || 'New session';
+    els.endedBar.classList.add('show');
+  }
+
+  // Stop the running session, keep the specimen on the page.
+  function stopSession() {
+    if (!state.listening) return;
+    if (state.mode === 'practice' && state.phase === 'capturing' && !state.practice.ended) {
+      endPractice(); // computes partial metrics, shows results
+      return;
+    }
+    state.listening = false;
+    state.phase = 'idle';
+    teardownAudio();
+    stopTips();
+    els.tips.textContent = '';
+    els.stopBtn.classList.remove('show');
+    setStatus('stopped', false);
+    showEndedBar(`session ended · ${String(state.count).padStart(3, '0')} words`, { showResume: true });
+  }
+
+  // Reset everything back to the hero, ready for a fresh mode choice.
+  function newSession() {
+    if (state.listening) {
+      state.listening = false;
+      state.phase = 'idle';
+      teardownAudio();
+    }
+    stopTips();
+    els.endedBar.classList.remove('show');
+    els.micBanner.classList.remove('show');
+    els.stopBtn.classList.remove('show');
+    els.specimen.innerHTML = '';
+    state.count = 0;
+    els.count.textContent = '000';
+    state.passage = null;
+    els.rPassage.innerHTML = '';
+    els.readingHeader.innerHTML = '';
+    interimPitch.clear();
+    els.main.classList.remove('listening', 'has-words', 'calibrating', 'reading-mode');
+    if (document.body.classList.contains('stage-mode')) exitStageMode();
+    els.status.classList.remove('practice-active');
+    hideTargetBand();
+    setStatus('offline', false);
+    els.livePitch.textContent = '— hz';
+    els.liveBucket.textContent = '—';
+    setModeBusy(false);
+    refreshActions();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   /* ─────────── SESSION FLOW ─────────── */
 
   async function startSession(mode, passageId) {
@@ -3533,8 +3791,9 @@
     // if mode='reading' and no passageId → state.passage must already be set (custom case)
 
     state.listening = true;
-    els.startBtn.disabled = true;
-    els.startBtn.textContent = 'Connecting…';
+    setModeBusy(true);
+    els.endedBar.classList.remove('show');
+    els.micBanner.classList.remove('show');
     setStatus('connecting', false);
     state.phase = 'connecting';
     els.main.classList.add('listening');
@@ -3542,6 +3801,8 @@
     try {
       await startAudio();
       startSpeech();
+      els.stopBtn.classList.add('show');
+      startTips();
       // If we already have a calibrated fingerprint, skip the 8s calibration.
       if (state.calibration.pMin && state.calibration.pMax) {
         setTimeout(() => {
@@ -3559,12 +3820,12 @@
       }
     } catch (e) {
       console.error(e);
-      setStatus('mic blocked — refresh and allow', false);
+      setStatus('mic blocked', false);
       state.listening = false;
       state.phase = 'idle';
-      els.startBtn.disabled = false;
-      els.startBtn.textContent = 'Start listening';
+      setModeBusy(false);
       els.main.classList.remove('listening');
+      showMicBanner();
     }
   }
 
@@ -3710,9 +3971,56 @@
 
   /* ─────────── BUTTONS ─────────── */
 
-  els.startBtn.addEventListener('click', () => startSession('free'));
-  els.startVariableBtn.addEventListener('click', () => startSession('variable'));
+  els.modeGrid.addEventListener('click', (e) => {
+    const card = e.target.closest('.mode-card');
+    if (!card || card.disabled) return;
+    const m = card.dataset.mode;
+    if (m === 'free') startSession('free');
+    else if (m === 'variable') startSession('variable');
+    else if (m === 'practice') openPracticeSetup();
+    else if (m === 'reading') {
+      els.passageList.classList.toggle('open');
+      if (els.passageList.classList.contains('open')) {
+        setTimeout(() => els.passageList.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
+      }
+    }
+  });
   els.liveDemoTrigger.addEventListener('click', activateLiveDemo);
+
+  els.stopBtn.addEventListener('click', stopSession);
+  els.ebResume.addEventListener('click', () => {
+    els.endedBar.classList.remove('show');
+    if (state.mode === 'reading' && state.passage) resetPassageProgress();
+    startSession(state.mode === 'practice' ? 'free' : state.mode);
+  });
+  els.ebNew.addEventListener('click', newSession);
+  els.micDismiss.addEventListener('click', () => els.micBanner.classList.remove('show'));
+
+  function resetPassageProgress() {
+    if (!state.passage) return;
+    state.passage.slots.forEach((slot) => {
+      slot.matched = false;
+      slot.skipped = false;
+      slot.pitch = null;
+      slot.morph = false;
+      slot.letterData = null;
+      if (slot.el) {
+        slot.el.classList.remove('matched', 'skipped', 'speaker-b');
+        slot.el.classList.add('pending');
+        const wEl = slot.el.querySelector('.r-word');
+        if (wEl) {
+          wEl.style.fontFamily = '';
+          wEl.style.fontWeight = '';
+          wEl.style.fontStyle = '';
+          wEl.style.removeProperty('--size');
+          wEl.textContent = slot.word;
+        }
+      }
+      if (slot.capEl) slot.capEl.innerHTML = '';
+    });
+    state.passage.cursor = 0;
+    updateReadingProgress();
+  }
 
   els.clearBtn.addEventListener('click', () => {
     els.specimen.innerHTML = '';
@@ -3722,29 +4030,10 @@
     interimPitch.clear();
 
     if (state.mode === 'reading' && state.passage) {
-      state.passage.slots.forEach((slot) => {
-        slot.matched = false;
-        slot.skipped = false;
-        slot.pitch = null;
-        slot.morph = false;
-        slot.letterData = null;
-        if (slot.el) {
-          slot.el.classList.remove('matched', 'skipped');
-          slot.el.classList.add('pending');
-          const wEl = slot.el.querySelector('.r-word');
-          if (wEl) {
-            wEl.style.fontFamily = '';
-            wEl.style.fontWeight = '';
-            wEl.style.fontStyle = '';
-            wEl.style.removeProperty('--size');
-            wEl.textContent = slot.word;
-          }
-        }
-        if (slot.capEl) slot.capEl.innerHTML = '';
-      });
-      state.passage.cursor = 0;
-      updateReadingProgress();
+      resetPassageProgress();
     }
+    refreshActions();
+    flashShareToast('Specimen cleared');
   });
 
   els.exportBtn.addEventListener('click', exportPoster);
@@ -3757,7 +4046,6 @@
   els.rbForget.addEventListener('click', forgetFingerprint);
 
   // Practice mode buttons
-  els.startPracticeBtn.addEventListener('click', openPracticeSetup);
   els.psCancel.addEventListener('click', closePracticeSetup);
   els.psGo.addEventListener('click', startPracticeSession);
   els.psOverlay.addEventListener('click', (e) => {
@@ -3768,10 +4056,12 @@
   });
   els.prAgain.addEventListener('click', () => {
     els.prOverlay.classList.remove('open');
-    // Clear specimen + reload page to a clean state, then reopen setup
+    els.endedBar.classList.remove('show');
+    // Clear specimen to a clean state, then reopen setup
     els.specimen.innerHTML = '';
     state.count = 0;
     els.count.textContent = '000';
+    refreshActions();
     openPracticeSetup();
   });
   els.historyBtn.addEventListener('click', openHistory);
@@ -3809,6 +4099,8 @@
         els.prOverlay.classList.remove('open');
       } else if (document.body.classList.contains('stage-mode')) {
         exitStageMode();
+      } else if (state.listening) {
+        stopSession();
       }
     }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && els.customOverlay.classList.contains('open')) {
@@ -3844,6 +4136,7 @@
 
   // If URL hash carries a shared specimen, render it directly.
   tryRestoreFromHash();
+  refreshActions();
 })();
 </script>
 </body>

@@ -871,3 +871,93 @@ It's also the cleanest possible statement of the project's premise: *one font, y
 - ❌ No CSS animations on the variation axes. They are driven directly from audio; smoothing happens in JS (EMA), not via CSS transitions.
 - ❌ No fallback to a faked oscillator if the mic is blocked. The word just sits in its neutral state and the caption reads `mic blocked`. Truth over theater.
 - ❌ The demo word never modulates `SOFT` or `WONK`. Those axes need within-word pitch trajectory data which only makes sense for committed words — applying them to a single sustained demo would be dishonest signal.
+
+---
+
+## 17. v0.7 — Usability Pass (Session Lifecycle & Recovery)
+
+A product-register pass over the chrome. No new capability; every change closes a usability gap found by auditing the session lifecycle end-to-end. The visual system is untouched — same paper, ink, terracotta, hairlines.
+
+### The gaps this closes
+
+1. **No way to stop.** Once a session started, the mic ran until page reload. Privacy problem and a trust problem.
+2. **Shared links were dead ends.** Opening a `#s=` URL hid the hero with no path to starting your own session.
+3. **Modes were buried.** One block button plus two italic links in three different styles; variable and practice were easy to miss entirely.
+4. **Silent failure.** A blocked mic produced a 10px status caption and nothing else.
+5. **Ambush calibration.** Nothing warned first-timers about the 8-second warm-up.
+6. **Dead controls looked alive.** Share and Export were clickable with zero words on the page.
+7. **No guidance while listening.** The empty state said `say something.` and nothing more.
+
+### Mode grid (replaces the CTA row)
+
+Four equal cards in a 2×2 grid (`max-width: 640px`), one per session mode. Same visual DNA as the passage and preset cards — 1px Hairline Strong border, mono uppercase label, Instrument Serif italic description, hover inverts to Charcoal Ink with a -2px lift.
+
+| Card | Label | Description line |
+|------|-------|------------------|
+| free (primary) | SPEAK FREELY | Every word lands in a font matched to your pitch |
+| reading | READ A PASSAGE | Words light up as you read them aloud |
+| variable | VARIABLE TYPE | One typeface, bent live by four voice signals |
+| practice | PRACTICE | Hold a target pitch range, track your hit-rate |
+
+- The free card carries `.primary` — Charcoal Ink fill at rest (the old `Start listening` weight), hover shifts to Terracotta. One primary per view.
+- Reading toggles the passage list open rather than starting a session — the passage choice IS the session start.
+- During `connecting`, all cards set `disabled` (opacity 0.5, `cursor: wait`). No spinner; the status bar carries the state.
+- Collapses to a single column below 720px.
+
+### Passage list — collapsed by default
+
+The five passage cards now live behind the READ A PASSAGE card. Collapsed state: `max-height: 0`, opacity 0, no border. `.open`: `max-height: 440px` (700px mobile), 0.4s `cubic-bezier(0.22, 0.61, 0.36, 1)`. Label reads `pick a passage to read aloud`. This halves the idle hero's vertical bulk.
+
+### Stop control
+
+A terracotta-bordered `STOP` button at the end of the topbar status cluster. Hidden until a session is live (`.show`). Also bound to Esc (lowest priority in the Esc chain — overlays and stage mode resolve first).
+
+- Free / variable / reading: tears down mic + recognition + loop, keeps the specimen on the page, shows the ended bar.
+- Practice mid-session: routes to `endPractice()` — partial metrics are computed honestly (`durationS` = real elapsed, not planned) and the results overlay shows as usual.
+- `teardownAudio()` now also halts the rAF detection loop (`loopRunning` guard) so a stopped session costs zero CPU.
+
+### Ended bar
+
+A 1px-bordered mono bar at the top of main, shown after any stop:
+
+```
+SESSION ENDED · 014 WORDS            [ KEEP SPEAKING ] [ NEW SESSION ]
+```
+
+- **Keep speaking** — restarts the same mode (fingerprint skips recalibration). Reading mode resets passage progress first.
+- **New session** — full reset: clears specimen, restores the hero, releases everything, scrolls to top.
+- Practice completion shows it without the resume button (`practice complete · 73% in target`); the results overlay owns the practice-again flow.
+- **Shared-specimen restore reuses it** as the escape hatch: `shared specimen · 012 words` + `Start your own`. A share link is never a dead end.
+
+### Mic-blocked recovery banner
+
+Terracotta-left-bordered banner (same anatomy as `.ps-privacy`) shown on `getUserMedia` failure or a `not-allowed` speech-recognition error:
+
+```
+MICROPHONE BLOCKED. Click the lock icon in your address bar, allow the microphone, then reload this page.   dismiss
+```
+
+Failure also fully unwinds the session state (classes, busy cards, teardown) so the page never wedges in a half-started state.
+
+### Rotating tips
+
+While listening with zero words captured, a mono caption under `say something.` cycles every 4s:
+
+`try a low rumble · now whisper something · sing one note and hold it · shout a single word · say a long word, slowly`
+
+The tips teach the pitch→font mapping by prompting the extremes. Hidden in reading mode (the passage is the prompt), practice (the band is the prompt), and once the first word lands.
+
+### Disabled footer actions
+
+`Share` and `Export poster` are `disabled` until at least one word exists (`.ghost:disabled` — opacity 0.35, `cursor: not-allowed`, hover suppressed). `Clear specimen` stays enabled and now confirms via the toast (`Specimen cleared`).
+
+### Calibration pre-notice
+
+The hero hint now reads: `allow microphone access · chrome or edge · first run includes an 8-second voice warm-up`. The warm-up is no longer a surprise.
+
+### Anti-patterns specific to this pass
+
+- ❌ No confirmation dialogs on stop. Stopping is non-destructive (the specimen stays); a confirm would punish the most important control on the page.
+- ❌ No auto-restart after mic failure. The banner explains recovery; retrying in a loop would re-trigger the permission prompt and read as nagging.
+- ❌ No pulsing/bouncing attention-getters on the stop button. It appears when relevant and sits still.
+- ❌ Tips never instruct posture, breathing, or technique — they prompt play, not pedagogy.
