@@ -1,0 +1,17 @@
+# Local dev config (per-machine launch + permissions)
+.claude/
+
+# Macros / OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs / scratch
+*.log
+.tmp/
+tmp/

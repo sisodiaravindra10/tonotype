@@ -1,0 +1,3850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tonotype — voice → type specimen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Black+Ops+One&family=Bodoni+Moda:wght@900&family=Bowlby+One&family=Bungee&family=Bungee+Shade&family=Caveat:wght@700&family=Cormorant+Garamond:ital,wght@0,700;1,500;1,700&family=DM+Serif+Display&family=EB+Garamond:wght@700&family=Faster+One&family=Fraunces:opsz,wght,SOFT,WONK@9..144,100..900,0..100,0..1&family=Geist:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=Inter:wght@800&family=Italianno&family=JetBrains+Mono:wght@400;500;700&family=Lora:wght@600&family=Major+Mono+Display&family=Manrope:wght@800&family=Monoton&family=Parisienne&family=Playfair+Display:ital,wght@0,900;1,900&family=Rubik+Glitch&family=Space+Grotesk:wght@700&family=Spectral:wght@700&family=Work+Sans:wght@800&family=Yeseva+One&display=swap" rel="stylesheet" />
+
+<style>
+  /* ─────────── reset + tokens ─────────── */
+  *,
+  *::before,
+  *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #efe9de;
+    --bg-2: #e7e0d3;
+    --ink: #1a1815;
+    --ink-soft: #4a443c;
+    --ink-mute: #8a8278;
+    --line: rgba(26, 24, 21, 0.12);
+    --line-strong: rgba(26, 24, 21, 0.22);
+    --accent: #c0431f;
+    --accent-soft: rgba(192, 67, 31, 0.12);
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    --serif: 'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
+    --sans: 'Geist', system-ui, -apple-system, sans-serif;
+  }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* paper grain (very subtle) */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle at 1px 1px, rgba(26, 24, 21, 0.04) 1px, transparent 0);
+    background-size: 3px 3px;
+    z-index: 1;
+  }
+
+  .preload { position: absolute; visibility: hidden; height: 0; overflow: hidden; pointer-events: none; }
+
+  /* ─────────── top bar ─────────── */
+  .topbar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand-name {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+  }
+  .brand-version {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+  }
+  .brand-tag {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-left: 8px;
+    letter-spacing: 0;
+  }
+  .brand-tag em { color: var(--accent); font-style: italic; }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--ink-mute);
+    transition: background 0.3s ease;
+  }
+  .status-dot.live {
+    background: var(--accent);
+    animation: pulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 0 0 var(--accent-soft);
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(192, 67, 31, 0.5); }
+    50% { opacity: 0.4; box-shadow: 0 0 0 6px rgba(192, 67, 31, 0); }
+  }
+  .status-text.live { color: var(--accent); }
+  .status-sep { color: var(--line-strong); }
+  .status-pitch, .status-bucket { color: var(--ink); }
+
+  /* ─────────── pitch scale ─────────── */
+  .scale {
+    position: relative;
+    z-index: 2;
+    padding: 20px 40px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .scale-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 14px;
+  }
+  .scale-buckets {
+    display: flex;
+    align-items: end;
+    gap: 1px;
+    margin-bottom: 12px;
+  }
+  .scale-bucket {
+    flex-grow: 0;
+    flex-shrink: 0;
+    border-left: 1px solid var(--line);
+    padding: 0 12px 0 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 56px;
+    transition: background 0.25s ease;
+  }
+  .scale-bucket:last-child {
+    border-right: 1px solid var(--line);
+  }
+  .scale-bucket.active {
+    background: var(--accent-soft);
+  }
+  .bucket-glyph {
+    font-size: 32px;
+    line-height: 0.9;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .bucket-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .bucket-name { color: var(--ink); font-weight: 500; }
+  .bucket-range { color: var(--ink-mute); }
+
+  .scale-bar {
+    position: relative;
+    height: 2px;
+    background: var(--line);
+    margin-bottom: 8px;
+  }
+  .scale-marker {
+    position: absolute;
+    top: -4px;
+    width: 2px;
+    height: 10px;
+    background: var(--accent);
+    opacity: 0;
+    transition: left 0.12s ease-out, opacity 0.3s ease;
+    transform: translateX(-1px);
+  }
+  .scale-marker::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .scale-axis {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--ink-mute);
+  }
+
+  /* ─────────── main ─────────── */
+  main {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    padding: 72px 56px 96px;
+    max-width: 1500px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* hero */
+  .hero {
+    max-width: 820px;
+    margin: 40px 0 60px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(56px, 8.2vw, 116px);
+    line-height: 0.96;
+    letter-spacing: -0.02em;
+    margin-bottom: 36px;
+    color: var(--ink);
+  }
+  .hero h1 .accent { color: var(--accent); font-style: italic; }
+  .hero .sub {
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 560px;
+    margin-bottom: 40px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .start {
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    padding: 18px 36px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.25s ease, background 0.25s ease;
+    position: relative;
+  }
+  .start:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: var(--accent);
+  }
+  .start:disabled { cursor: wait; opacity: 0.7; }
+  .hint {
+    margin-top: 18px;
+    color: var(--ink-mute);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  main.listening .hero { display: none; }
+
+  /* placeholder while listening but no words yet */
+  .placeholder {
+    display: none;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(40px, 5vw, 72px);
+    color: var(--ink-mute);
+    line-height: 1;
+    margin-top: 40px;
+  }
+  main.listening .placeholder { display: block; }
+  main.has-words .placeholder { display: none; }
+
+  /* specimen feed */
+  .specimen {
+    display: block;
+    line-height: 0;
+  }
+  .word-block {
+    display: inline-block;
+    vertical-align: top;
+    margin: 0 38px 64px 0;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: rise 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    max-width: 90vw;
+    line-height: normal;
+  }
+  @keyframes rise {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .word-index {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--ink-mute);
+    margin-bottom: 8px;
+  }
+  .word-text {
+    display: block;
+    font-size: calc(var(--size, 1) * clamp(72px, 11vw, 168px));
+    line-height: 0.88;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    word-break: break-word;
+  }
+  .word-text .letter,
+  .r-word .letter {
+    display: inline-block;
+    line-height: inherit;
+  }
+  .word-meta .bucket-tag.morph { color: var(--accent); }
+  .word-meta {
+    display: block;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    line-height: 1.4;
+  }
+  .word-meta .bucket-tag {
+    color: var(--accent);
+    margin-right: 10px;
+    font-weight: 500;
+  }
+  .word-meta .font-name {
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .word-block { animation: none; opacity: 1; transform: none; }
+    .status-dot.live { animation: none; }
+  }
+
+  /* ─────────── bottom bar ─────────── */
+  .bottombar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 40px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    background: var(--bg);
+  }
+  .bottombar #count { color: var(--ink); font-weight: 500; margin-left: 4px; }
+  .ghost {
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    padding: 8px 14px;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .ghost:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* ─────────── passage selector (hero) ─────────── */
+  .passage-list {
+    margin-top: 44px;
+    border-top: 1px solid var(--line);
+    padding-top: 28px;
+  }
+  .passage-list-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 18px;
+  }
+  .passage-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .passage-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 14px 20px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    cursor: pointer;
+    transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+    text-align: left;
+    font: inherit;
+    color: var(--ink);
+    min-height: 64px;
+  }
+  .passage-card:hover {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+    transform: translateY(-2px);
+  }
+  .passage-card:hover .pc-source { color: var(--bg); opacity: 0.6; }
+  .pc-source {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    transition: color 0.22s ease, opacity 0.22s ease;
+  }
+  .pc-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1;
+    color: inherit;
+  }
+
+  /* ─────────── calibration ─────────── */
+  .calibration {
+    display: none;
+    max-width: 620px;
+    margin: 56px 0 64px;
+  }
+  main.calibrating .calibration { display: block; }
+  main.calibrating .placeholder { display: none; }
+  main.calibrating .specimen { display: none; }
+  main.calibrating .reading { display: none; }
+  .calib-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .calib-hint {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 3.6vw, 44px);
+    line-height: 1.15;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+  }
+  .calib-bar {
+    height: 2px;
+    background: var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  .calib-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.12s linear;
+  }
+  .calib-foot {
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  /* ─────────── reading mode ─────────── */
+  .reading {
+    display: none;
+    margin-top: 28px;
+  }
+  main.reading-mode .reading { display: block; }
+  main.reading-mode .placeholder { display: none; }
+  main.reading-mode .specimen { display: none; }
+  .reading-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 36px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .reading-header .rh-source { color: var(--ink); }
+  .reading-header .rh-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+  .reading-header .rh-progress {
+    margin-left: auto;
+    color: var(--ink-mute);
+  }
+  .r-passage {
+    line-height: 0;
+  }
+  .r-slot {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    vertical-align: top;
+    margin: 0 22px 36px 0;
+    line-height: normal;
+    opacity: 0.38;
+    transition: opacity 0.45s ease;
+    max-width: 90vw;
+  }
+  .r-slot.matched { opacity: 1; }
+  .r-slot.skipped { opacity: 0.18; }
+  .r-word {
+    display: block;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: calc(var(--size, 1) * clamp(36px, 5.2vw, 76px));
+    line-height: 0.96;
+    color: var(--ink-mute);
+    letter-spacing: -0.005em;
+    transition: color 0.45s ease;
+    word-break: break-word;
+  }
+  .r-slot.matched .r-word {
+    color: var(--ink);
+    font-style: normal;
+  }
+  .r-cap {
+    display: block;
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    white-space: nowrap;
+  }
+  .r-slot.matched .r-cap { opacity: 1; }
+  .r-cap .b { color: var(--accent); margin-right: 8px; font-weight: 500; }
+  .r-cap .fname { color: var(--ink); }
+
+  /* ─────────── custom passage modal ─────────── */
+  .passage-card-custom {
+    border-style: dashed;
+  }
+  .cm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 24, 21, 0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+  .cm-overlay.open {
+    display: flex;
+    opacity: 1;
+  }
+  .cm-panel {
+    background: var(--bg);
+    max-width: 640px;
+    width: 100%;
+    padding: 44px 44px 32px;
+    border: 1px solid var(--ink);
+    box-shadow: 0 30px 80px rgba(26, 24, 21, 0.22);
+    transform: translateY(8px);
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .cm-overlay.open .cm-panel { transform: translateY(0); }
+  .cm-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .cm-hint {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(22px, 2.6vw, 30px);
+    line-height: 1.25;
+    color: var(--ink-soft);
+    margin-bottom: 24px;
+  }
+  #customText {
+    width: 100%;
+    height: 180px;
+    border: none;
+    border-bottom: 1px solid var(--ink);
+    padding: 12px 0;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    resize: vertical;
+    outline: none;
+    margin-bottom: 28px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  #customText:focus {
+    border-bottom-color: var(--accent);
+  }
+  #customText::placeholder {
+    color: var(--ink-mute);
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 18px;
+  }
+  .cm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .cm-actions .start {
+    padding: 14px 26px;
+  }
+  .cm-err {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-top: 12px;
+    margin-bottom: -8px;
+    min-height: 14px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .cm-err.show { opacity: 1; }
+
+  /* ─────────── footer actions group ─────────── */
+  .footer-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* ─────────── variable mode ─────────── */
+  .start-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+  .start-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 18px;
+    color: var(--ink-soft);
+    transition: color 0.2s ease, transform 0.2s ease;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .start-link:hover {
+    color: var(--accent);
+    transform: translateX(2px);
+  }
+  .start-link .arrow {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  .start-link:hover .arrow { transform: translateX(4px); }
+
+  .word-text.variable,
+  .r-word.variable {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: normal;
+    font-weight: 400;
+    /* font-variation-settings is set inline per-word from JS */
+  }
+
+  /* ─────────── phoneme-aware spacing (applies to letter spans) ─────────── */
+  .letter.vowel {
+    padding-left: 0.02em;
+    padding-right: 0.04em;
+  }
+  .letter.consonant {
+    letter-spacing: -0.005em;
+  }
+
+  /* ─────────── multi-speaker detection (max 2) ─────────── */
+  .word-block.speaker-b .word-text,
+  .word-block.speaker-b .word-text .letter {
+    color: var(--ink-soft);
+  }
+  .word-block.speaker-b .word-index::before {
+    content: '— ';
+    color: var(--accent);
+  }
+  .r-slot.matched.speaker-b .r-word,
+  .r-slot.matched.speaker-b .r-word .letter {
+    color: var(--ink-soft);
+  }
+
+  /* ─────────── tonal-language preset selector ─────────── */
+  .lang-picker {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 40px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .lang-picker-label { color: var(--ink-mute); }
+  .lang-options { display: flex; gap: 4px; flex-wrap: wrap; }
+  .lang-option {
+    background: none;
+    border: none;
+    color: var(--ink-mute);
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .lang-option:hover { color: var(--ink); }
+  .lang-option.active { color: var(--accent); background: var(--accent-soft); }
+
+  /* ─────────── returning-voice banner ─────────── */
+  .returning-banner {
+    display: none;
+    margin: 24px 0 0;
+    padding: 14px 20px;
+    border: 1px dashed var(--line-strong);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .returning-banner.show { display: flex; }
+  .returning-banner .rb-key { color: var(--accent); margin-right: 6px; }
+  .returning-banner .rb-meta { color: var(--ink-mute); margin-left: auto; }
+  .returning-banner .rb-link {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .returning-banner .rb-link:hover { color: var(--accent); }
+
+  /* ─────────── share-url confirmation toast ─────────── */
+  .share-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 12px 22px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+    pointer-events: none;
+  }
+  .share-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .share-toast .accent { color: var(--accent); margin-right: 8px; }
+
+  /* ─────────── stage (live performance) mode ─────────── */
+  body.stage-mode {
+    background: #0c0b09;
+    color: #efe9de;
+  }
+  body.stage-mode::before {
+    background-image: radial-gradient(circle at 1px 1px, rgba(239, 233, 222, 0.04) 1px, transparent 0);
+  }
+  body.stage-mode .topbar,
+  body.stage-mode .scale,
+  body.stage-mode .bottombar,
+  body.stage-mode .hero,
+  body.stage-mode .lang-picker,
+  body.stage-mode .returning-banner,
+  body.stage-mode .calibration .calib-foot { display: none; }
+  body.stage-mode main { padding: 80px 80px 120px; max-width: none; }
+  body.stage-mode .reading-header { color: rgba(239, 233, 222, 0.4); border-bottom-color: rgba(239, 233, 222, 0.12); }
+  body.stage-mode .reading-header .rh-source,
+  body.stage-mode .reading-header .rh-title { color: rgba(239, 233, 222, 0.8); }
+  body.stage-mode .calibration { color: rgba(239, 233, 222, 0.8); }
+  body.stage-mode .calib-label { color: var(--accent); }
+  body.stage-mode .calib-hint { color: rgba(239, 233, 222, 0.7); }
+  body.stage-mode .calib-bar { background: rgba(239, 233, 222, 0.12); }
+  body.stage-mode .word-text,
+  body.stage-mode .word-text .letter {
+    color: #efe9de;
+    font-size: calc(var(--size, 1) * clamp(96px, 14vw, 220px));
+  }
+  body.stage-mode .word-block.speaker-b .word-text,
+  body.stage-mode .word-block.speaker-b .word-text .letter {
+    color: rgba(239, 233, 222, 0.6);
+  }
+  body.stage-mode .word-meta { color: rgba(239, 233, 222, 0.35); border-top-color: rgba(239, 233, 222, 0.14); }
+  body.stage-mode .word-meta .font-name { color: rgba(239, 233, 222, 0.7); }
+  body.stage-mode .word-meta .axis-readout { color: rgba(239, 233, 222, 0.7); }
+  body.stage-mode .word-meta .axis-key { color: rgba(239, 233, 222, 0.35); }
+  body.stage-mode .r-word,
+  body.stage-mode .r-word .letter { color: rgba(239, 233, 222, 0.32); }
+  body.stage-mode .r-slot.matched .r-word,
+  body.stage-mode .r-slot.matched .r-word .letter {
+    color: #efe9de;
+    font-size: calc(var(--size, 1) * clamp(56px, 7.5vw, 110px));
+  }
+  body.stage-mode .r-cap { color: rgba(239, 233, 222, 0.4); border-top-color: rgba(239, 233, 222, 0.14); }
+  body.stage-mode .r-cap .fname { color: rgba(239, 233, 222, 0.7); }
+
+  .stage-exit {
+    display: none;
+    position: fixed;
+    top: 14px;
+    right: 22px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(239, 233, 222, 0.55);
+    background: none;
+    border: 1px solid rgba(239, 233, 222, 0.22);
+    padding: 8px 14px;
+    cursor: pointer;
+    z-index: 50;
+    transition: opacity 1.2s ease, color 0.25s ease, border-color 0.25s ease;
+  }
+  body.stage-mode .stage-exit { display: block; opacity: 1; }
+  body.stage-mode.idle-mouse .stage-exit { opacity: 0; }
+  .stage-exit:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ─────────── live demo word (Fraunces, real-time wght+opsz) ─────────── */
+  .live-demo {
+    margin-bottom: 38px;
+    user-select: none;
+  }
+  .live-demo-trigger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: block;
+    padding: 0;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+  }
+  .live-demo-word {
+    display: inline-block;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: clamp(80px, 13vw, 200px);
+    line-height: 0.95;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    font-weight: 400;
+    font-variation-settings: "opsz" 60, "SOFT" 0, "WONK" 0;
+    transition: color 0.25s ease;
+  }
+  .live-demo.active .live-demo-word {
+    /* Active state: variation-settings + weight set from JS, no CSS transition
+       on the variations (would feel laggy against live audio). */
+  }
+  .live-demo-trigger:hover .live-demo-word { color: var(--accent); }
+  .live-demo.active .live-demo-trigger { cursor: default; }
+  .live-demo.active .live-demo-trigger:hover .live-demo-word { color: var(--ink); }
+
+  .live-demo-hint {
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .live-demo.active .live-demo-hint { color: var(--accent); }
+  .live-demo-hint .ldh-key { color: var(--ink); }
+  .live-demo.active .live-demo-hint .ldh-key { color: var(--accent); }
+  .live-demo-hint .ldh-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-mute);
+    transition: background 0.25s ease;
+  }
+  .live-demo.active .live-demo-hint .ldh-dot {
+    background: var(--accent);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .live-demo-hint .ldh-readout {
+    color: var(--ink);
+    margin-left: 4px;
+    font-feature-settings: "tnum" 1;
+  }
+  .live-demo.active ~ .hero h1 .accent { color: var(--accent); }
+
+  /* hide the live demo when a session is running — the real specimen takes over */
+  main.listening .live-demo { display: none; }
+
+  /* ─────────── practice mode (clinical / vocal training) ─────────── */
+  .practice-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 18px;
+    color: var(--ink-soft);
+    transition: color 0.2s ease, transform 0.2s ease;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .practice-link:hover { color: var(--accent); transform: translateX(2px); }
+  .practice-link .arrow { display: inline-block; transition: transform 0.2s ease; }
+  .practice-link:hover .arrow { transform: translateX(4px); }
+
+  /* target band overlaid on the scale */
+  .target-band {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: var(--accent-soft);
+    border-left: 1px dashed var(--accent);
+    border-right: 1px dashed var(--accent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, left 0.3s ease, width 0.3s ease;
+    z-index: 1;
+  }
+  .target-band.show { opacity: 1; }
+  .target-band-label {
+    position: absolute;
+    top: -22px;
+    left: 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .scale-buckets { position: relative; }
+
+  /* practice topbar status overrides */
+  .status.practice-active .status-pitch,
+  .status.practice-active .status-bucket,
+  .status.practice-active .status-sep:nth-of-type(2),
+  .status.practice-active .status-sep:nth-of-type(3) { display: none; }
+  .practice-timer-cell,
+  .practice-hit-cell {
+    display: none;
+    color: var(--ink);
+  }
+  .status.practice-active .practice-timer-cell,
+  .status.practice-active .practice-hit-cell { display: inline; }
+  .status.practice-active .practice-hit-cell { color: var(--accent); }
+
+  /* practice setup overlay (reuses cm-overlay scaffold) */
+  .ps-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 24, 21, 0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+  .ps-overlay.open { display: flex; opacity: 1; }
+  .ps-panel {
+    background: var(--bg);
+    max-width: 720px;
+    width: 100%;
+    padding: 40px 44px 32px;
+    border: 1px solid var(--ink);
+    box-shadow: 0 30px 80px rgba(26, 24, 21, 0.22);
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(8px);
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .ps-overlay.open .ps-panel { transform: translateY(0); }
+  .ps-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .ps-hint {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(22px, 2.6vw, 28px);
+    line-height: 1.25;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+  }
+  .ps-section {
+    margin-bottom: 28px;
+  }
+  .ps-section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 12px;
+  }
+  .preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .preset-card {
+    text-align: left;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    padding: 14px 16px;
+    cursor: pointer;
+    font: inherit;
+    color: var(--ink);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .preset-card:hover { border-color: var(--ink); }
+  .preset-card.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .preset-card.active .preset-card-range { color: var(--bg); opacity: 0.7; }
+  .preset-card-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .preset-card-range {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink-mute);
+  }
+  .preset-card.custom-fields {
+    grid-column: 1 / -1;
+  }
+  .custom-range-row {
+    display: none;
+    gap: 14px;
+    margin-top: 12px;
+    align-items: center;
+  }
+  .preset-card.active.custom .custom-range-row { display: flex; }
+  .custom-range-row input[type="number"] {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--line-strong);
+    color: var(--ink);
+    font: inherit;
+    font-family: var(--mono);
+    font-size: 14px;
+    width: 70px;
+    padding: 4px 0;
+    text-align: center;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .preset-card.active.custom .custom-range-row input[type="number"] {
+    color: var(--bg);
+    border-bottom-color: rgba(239, 233, 222, 0.4);
+  }
+  .custom-range-row input::-webkit-outer-spin-button,
+  .custom-range-row input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .custom-range-row .arrow {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-mute);
+  }
+  .preset-card.active.custom .custom-range-row .arrow { color: var(--bg); opacity: 0.6; }
+
+  .duration-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .duration-card {
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    padding: 12px 22px;
+    cursor: pointer;
+    font: inherit;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink);
+    transition: all 0.2s ease;
+    flex: 1;
+    min-width: 80px;
+  }
+  .duration-card:hover { border-color: var(--ink); }
+  .duration-card.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .ps-privacy {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    padding: 14px 16px;
+    border-left: 2px solid var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .ps-privacy strong { color: var(--accent); font-weight: 500; }
+  .ps-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .ps-actions .start { padding: 14px 26px; }
+
+  /* practice results overlay */
+  .pr-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 24, 21, 0.65);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .pr-overlay.open { display: flex; opacity: 1; }
+  .pr-panel {
+    background: var(--bg);
+    max-width: 680px;
+    width: 100%;
+    padding: 44px 44px 32px;
+    border: 1px solid var(--ink);
+    box-shadow: 0 30px 80px rgba(26, 24, 21, 0.28);
+    transform: translateY(8px);
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .pr-overlay.open .pr-panel { transform: translateY(0); }
+  .pr-headline {
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 400;
+    font-size: clamp(36px, 4.6vw, 56px);
+    line-height: 1.05;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .pr-headline .pct { color: var(--accent); }
+  .pr-sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-mute);
+    margin-bottom: 30px;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .metric-cell {
+    background: var(--bg);
+    padding: 18px 16px;
+  }
+  .metric-key {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .metric-value {
+    font-family: var(--serif);
+    font-style: normal;
+    font-weight: 400;
+    font-size: clamp(20px, 2.6vw, 28px);
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .metric-value .unit {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-mute);
+    margin-left: 4px;
+    letter-spacing: 0.1em;
+  }
+  .pr-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* history overlay */
+  .hist-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 24, 21, 0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+  }
+  .hist-overlay.open { display: flex; opacity: 1; }
+  .hist-panel {
+    background: var(--bg);
+    max-width: 800px;
+    width: 100%;
+    max-height: 86vh;
+    padding: 36px 40px 28px;
+    border: 1px solid var(--ink);
+    box-shadow: 0 30px 80px rgba(26, 24, 21, 0.22);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(8px);
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .hist-overlay.open .hist-panel { transform: translateY(0); }
+  .hist-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .hist-head .hist-title { color: var(--ink); }
+  .hist-head .hist-count { color: var(--accent); }
+  .sparkline-wrap {
+    position: relative;
+    height: 80px;
+    margin-bottom: 24px;
+    padding-top: 16px;
+  }
+  .sparkline-wrap canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .sparkline-axis {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 4px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .sparkline-target {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed var(--accent);
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--accent);
+  }
+  .session-list {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0 -8px;
+  }
+  .session-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 0.8fr 0.8fr;
+    gap: 12px;
+    padding: 12px 8px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.18s ease;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .session-row:hover { background: var(--accent-soft); color: var(--ink); }
+  .session-row .sr-rate { color: var(--accent); font-weight: 500; }
+  .session-row .sr-preset { color: var(--ink); }
+  .hist-empty {
+    text-align: left;
+    padding: 40px 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 20px;
+    color: var(--ink-mute);
+  }
+  .hist-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .hist-clear {
+    background: none;
+    border: none;
+    color: var(--ink-mute);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .hist-clear:hover { color: var(--accent); }
+
+  @media (max-width: 720px) {
+    .preset-grid { grid-template-columns: 1fr; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .ps-panel, .pr-panel, .hist-panel { padding: 24px 18px 18px; }
+    .session-row { grid-template-columns: 1fr 1fr; font-size: 10px; gap: 6px; }
+    .session-row .sr-preset, .session-row .sr-duration { display: none; }
+  }
+  .word-meta .axis-readout {
+    color: var(--ink);
+    font-feature-settings: "tnum" 1;
+  }
+  .word-meta .axis-key {
+    color: var(--ink-mute);
+    margin-right: 2px;
+  }
+  .word-meta .axis-sep {
+    color: var(--line-strong);
+    margin: 0 6px;
+  }
+
+  /* ─────────── responsive ─────────── */
+  @media (max-width: 720px) {
+    .topbar { padding: 14px 18px; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .brand-tag { display: none; }
+    .scale { padding: 14px 18px 18px; }
+    .scale-buckets { gap: 0; }
+    .scale-bucket { padding: 0 6px; min-height: 44px; }
+    .bucket-glyph { font-size: 22px; }
+    .bucket-meta { font-size: 8px; }
+    .bucket-range { display: none; }
+    main { padding: 40px 20px 60px; }
+    .word-block { margin: 0 20px 40px 0; }
+    .r-slot { margin: 0 14px 28px 0; }
+    .bottombar { padding: 12px 18px; }
+    .passage-cards { gap: 8px; }
+    .passage-card { padding: 12px 14px; min-height: 56px; }
+    .pc-title { font-size: 16px; }
+    .reading-header { flex-wrap: wrap; }
+    .reading-header .rh-progress { margin-left: 0; flex-basis: 100%; }
+    .cm-panel { padding: 28px 22px 22px; }
+    .footer-actions { flex-wrap: wrap; justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+
+<!-- preload all fonts so first paint isn't a system fallback -->
+<div class="preload" aria-hidden="true" id="preload"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-name">TONOTYPE</span>
+    <span class="brand-version">v0.1</span>
+    <span class="brand-tag">voice <em>becomes</em> type specimen</span>
+  </div>
+  <div class="status" id="status">
+    <span class="status-dot" id="dot"></span>
+    <span class="status-text" id="statusText">offline</span>
+    <span class="status-sep">/</span>
+    <span class="status-pitch" id="livePitch">— hz</span>
+    <span class="status-sep">/</span>
+    <span class="status-bucket" id="liveBucket">—</span>
+    <span class="practice-timer-cell" id="practiceTimer">0:00</span>
+    <span class="status-sep practice-sep">/</span>
+    <span class="practice-hit-cell" id="practiceHit">in-target —%</span>
+  </div>
+</header>
+
+<section class="scale">
+  <div class="scale-label">pitch spectrum · 60 → 1200 hz · logarithmic</div>
+  <div class="scale-buckets" id="scaleBuckets">
+    <div class="target-band" id="targetBand"><span class="target-band-label" id="targetBandLabel"></span></div>
+  </div>
+  <div class="scale-bar">
+    <div class="scale-marker" id="marker"></div>
+  </div>
+  <div class="scale-axis">
+    <span>60 Hz</span>
+    <span>120</span>
+    <span>240</span>
+    <span>480</span>
+    <span>960</span>
+    <span>1200 Hz</span>
+  </div>
+</section>
+
+<section class="lang-picker">
+  <span class="lang-picker-label">language ·</span>
+  <div class="lang-options" id="langOptions"></div>
+</section>
+
+<main id="main">
+  <div class="hero" id="hero">
+    <div class="live-demo" id="liveDemo">
+      <button class="live-demo-trigger" id="liveDemoTrigger" type="button" aria-label="Activate live preview">
+        <span class="live-demo-word" id="liveDemoWord">hello</span>
+      </button>
+      <div class="live-demo-hint" id="liveDemoHint">
+        <span class="ldh-dot" id="liveDemoDot"></span>
+        <span class="ldh-key">tap and speak</span>
+        <span>— your loudness modulates this letterform live</span>
+        <span class="ldh-readout" id="liveDemoReadout"></span>
+      </div>
+    </div>
+
+    <h1>Speak.<br />Watch your voice<br />become a <span class="accent">typeface</span>.</h1>
+    <p class="sub">Tonotype listens to the pitch of your voice and sets each word you say in a font that matches its tone. Low rumbles land in heavy display type, mid registers in editorial serifs, high notes in flowing scripts. Read something aloud — with feeling.</p>
+    <div class="start-row">
+      <button class="start" id="startBtn">Start listening</button>
+      <button class="start-link" id="startVariableBtn" type="button">or start in <em>variable</em> mode <span class="arrow">→</span></button>
+      <button class="practice-link" id="startPracticeBtn" type="button">practice with a <em>pitch target</em> <span class="arrow">→</span></button>
+    </div>
+    <p class="hint">Allow microphone access · best in chrome or edge</p>
+
+    <div class="returning-banner" id="returningBanner">
+      <span><span class="rb-key">Returning voice</span><span id="rbRange">— Hz</span></span>
+      <span class="rb-meta" id="rbMeta">last seen —</span>
+      <button class="rb-link" id="rbForget" type="button">forget &amp; recalibrate</button>
+    </div>
+
+    <div class="passage-list">
+      <div class="passage-list-label">— or read aloud —</div>
+      <div class="passage-cards" id="passageCards"></div>
+    </div>
+  </div>
+
+  <div class="calibration" id="calib">
+    <div class="calib-label" id="calibLabel">Warming the type case</div>
+    <div class="calib-hint" id="calibHint">Talk naturally for a few seconds — anything at all. Tonotype is learning the shape of your voice.</div>
+    <div class="calib-bar"><div class="calib-fill" id="calibFill"></div></div>
+    <div class="calib-foot" id="calibFoot">Calibrating · 0.0s / 8.0s</div>
+  </div>
+
+  <div class="placeholder">say something.</div>
+  <div class="specimen" id="specimen"></div>
+
+  <div class="reading" id="reading">
+    <div class="reading-header" id="readingHeader"></div>
+    <div class="r-passage" id="rPassage"></div>
+  </div>
+</main>
+
+<div class="cm-overlay" id="customOverlay" role="dialog" aria-modal="true" aria-labelledby="cmLabel">
+  <div class="cm-panel">
+    <div class="cm-label" id="cmLabel">Your text</div>
+    <div class="cm-hint">Paste a poem, a passage, a vow, a lyric — anything you want to read aloud.</div>
+    <textarea id="customText" spellcheck="false" placeholder="Out beyond ideas of wrongdoing and rightdoing, there is a field. I will meet you there..."></textarea>
+    <div class="cm-err" id="customErr">Needs at least three words.</div>
+    <div class="cm-actions">
+      <button id="customCancel" class="ghost">Cancel</button>
+      <button id="customGo" class="start">Read this aloud</button>
+    </div>
+  </div>
+</div>
+
+<footer class="bottombar">
+  <div class="muted">specimen <span id="count">000</span></div>
+  <div class="footer-actions">
+    <button id="historyBtn" class="ghost">History</button>
+    <button id="stageBtn" class="ghost">Stage mode</button>
+    <button id="shareBtn" class="ghost">Share</button>
+    <button id="exportBtn" class="ghost">Export poster</button>
+    <button id="clearBtn" class="ghost">Clear specimen</button>
+  </div>
+</footer>
+
+<button class="stage-exit" id="stageExit" type="button">Exit stage · esc</button>
+<div class="share-toast" id="shareToast"><span class="accent">—</span><span id="shareToastText">Specimen link copied</span></div>
+
+<div class="ps-overlay" id="psOverlay" role="dialog" aria-modal="true">
+  <div class="ps-panel">
+    <div class="ps-label">Practice mode</div>
+    <div class="ps-hint">Speak inside a target pitch range. Tonotype tracks how much of your time stays in the zone.</div>
+
+    <div class="ps-section">
+      <div class="ps-section-label">Target range</div>
+      <div class="preset-grid" id="presetGrid"></div>
+    </div>
+
+    <div class="ps-section">
+      <div class="ps-section-label">Session length</div>
+      <div class="duration-row" id="durationRow"></div>
+    </div>
+
+    <div class="ps-privacy">
+      <strong>Private by default.</strong> Your voice never leaves this device. No recording, no cloud, no account. Session summaries (pitch range, hit-rate) are saved only to this browser, and you can clear them anytime from the History panel.
+    </div>
+
+    <div class="ps-actions">
+      <button id="psCancel" class="ghost">Cancel</button>
+      <button id="psGo" class="start">Start practice</button>
+    </div>
+  </div>
+</div>
+
+<div class="pr-overlay" id="prOverlay" role="dialog" aria-modal="true">
+  <div class="pr-panel">
+    <h2 class="pr-headline" id="prHeadline">— <span class="pct">—%</span></h2>
+    <div class="pr-sub" id="prSub">in your target range</div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+    <div class="pr-actions">
+      <button id="prDone" class="ghost">Done</button>
+      <button id="prAgain" class="start">Practice again</button>
+    </div>
+  </div>
+</div>
+
+<div class="hist-overlay" id="histOverlay" role="dialog" aria-modal="true">
+  <div class="hist-panel">
+    <div class="hist-head">
+      <span><span class="hist-title">Practice history</span> · <span class="hist-count" id="histCount">0</span> sessions</span>
+      <button id="histClose" class="hist-clear" type="button">close · esc</button>
+    </div>
+    <div class="sparkline-wrap" id="sparklineWrap">
+      <div class="sparkline-axis"><span>0%</span><span>50%</span><span>100%</span></div>
+      <canvas id="sparkline" width="800" height="80"></canvas>
+    </div>
+    <div class="session-list" id="sessionList"></div>
+    <div class="hist-actions">
+      <button id="histClear" class="hist-clear" type="button">forget all history</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ───────────────────────────── CONFIG ───────────────────────────── */
+
+  const FONT_BUCKETS = [
+    {
+      name: 'bass', label: 'BASS',
+      fonts: [
+        { family: 'Anton',          weight: 400, style: 'normal' },
+        { family: 'Archivo Black',  weight: 900, style: 'normal' },
+        { family: 'Bungee',         weight: 400, style: 'normal' },
+        { family: 'Bowlby One',     weight: 400, style: 'normal' },
+        { family: 'Black Ops One',  weight: 400, style: 'normal' },
+      ],
+    },
+    {
+      name: 'baritone', label: 'BARITONE',
+      fonts: [
+        { family: 'Playfair Display', weight: 900, style: 'normal' },
+        { family: 'DM Serif Display', weight: 400, style: 'normal' },
+        { family: 'Bodoni Moda',      weight: 900, style: 'normal' },
+        { family: 'Yeseva One',       weight: 400, style: 'normal' },
+      ],
+    },
+    {
+      name: 'tenor', label: 'TENOR',
+      fonts: [
+        { family: 'Lora',                weight: 600, style: 'normal' },
+        { family: 'EB Garamond',         weight: 700, style: 'normal' },
+        { family: 'Cormorant Garamond',  weight: 700, style: 'normal' },
+        { family: 'Spectral',            weight: 700, style: 'normal' },
+      ],
+    },
+    {
+      name: 'alto', label: 'ALTO',
+      fonts: [
+        { family: 'Inter',         weight: 800, style: 'normal' },
+        { family: 'Space Grotesk', weight: 700, style: 'normal' },
+        { family: 'Manrope',       weight: 800, style: 'normal' },
+        { family: 'Work Sans',     weight: 800, style: 'normal' },
+      ],
+    },
+    {
+      name: 'soprano', label: 'SOPRANO',
+      fonts: [
+        { family: 'Cormorant Garamond', weight: 500, style: 'italic' },
+        { family: 'Playfair Display',   weight: 900, style: 'italic' },
+        { family: 'Caveat',             weight: 700, style: 'normal' },
+        { family: 'Parisienne',         weight: 400, style: 'normal' },
+      ],
+    },
+    {
+      name: 'piccolo', label: 'PICCOLO',
+      fonts: [
+        { family: 'Italianno',           weight: 400, style: 'normal' },
+        { family: 'Monoton',             weight: 400, style: 'normal' },
+        { family: 'Faster One',          weight: 400, style: 'normal' },
+        { family: 'Bungee Shade',        weight: 400, style: 'normal' },
+        { family: 'Rubik Glitch',        weight: 400, style: 'normal' },
+        { family: 'Major Mono Display',  weight: 400, style: 'normal' },
+      ],
+    },
+  ];
+
+  const MIN_HZ = 60;
+  const MAX_HZ = 1200;
+  const CALIBRATION_MS = 8000;
+
+  const PASSAGES = [
+    {
+      id: 'sonnet18',
+      source: 'Shakespeare',
+      title: 'Sonnet XVIII',
+      text: "Shall I compare thee to a summer's day? Thou art more lovely and more temperate.",
+    },
+    {
+      id: 'rumi',
+      source: 'Rumi',
+      title: 'The Field',
+      text: "Out beyond ideas of wrongdoing and rightdoing, there is a field. I will meet you there.",
+    },
+    {
+      id: 'whitman',
+      source: 'Whitman',
+      title: 'Song of Myself',
+      text: "I celebrate myself, and sing myself, and what I assume you shall assume.",
+    },
+    {
+      id: 'sappho',
+      source: 'Sappho',
+      title: 'Fragment 31',
+      text: "He seems to me equal to gods, that man, whoever he is, who sits across from you.",
+    },
+  ];
+
+  // Language presets — adjust the *expected* pitch range envelope. The actual
+  // captured range still drives bucket assignment; this is a hint for which
+  // band of frequencies is typical for the language being spoken.
+  const LANGUAGE_PRESETS = [
+    { id: 'en', label: 'EN',  full: 'English',     minHz: 60,  maxHz: 1200 },
+    { id: 'zh', label: 'ZH',  full: 'Mandarin',    minHz: 75,  maxHz: 1500 }, // tonal — wider top
+    { id: 'vi', label: 'VI',  full: 'Vietnamese',  minHz: 75,  maxHz: 1500 }, // tonal — six tones
+    { id: 'yue', label: 'YUE', full: 'Cantonese',   minHz: 75,  maxHz: 1500 }, // tonal — nine tones
+    { id: 'es', label: 'ES',  full: 'Spanish',     minHz: 55,  maxHz: 900 },  // narrower range, deeper average
+    { id: 'ja', label: 'JA',  full: 'Japanese',    minHz: 80,  maxHz: 1100 }, // pitch accent
+  ];
+
+  const FINGERPRINT_KEY = 'tonotype.fingerprint.v1';
+  const FINGERPRINT_TTL_DAYS = 30;
+
+  // Practice presets — target pitch ranges for vocal training.
+  // Ranges are approximate guides drawn from common vocal-coaching practice;
+  // every voice is different, so users can also pick Custom.
+  const PRACTICE_PRESETS = [
+    { id: 'masc', label: 'Masculinizing',   min: 80,  max: 165 },
+    { id: 'fem',  label: 'Feminizing',      min: 165, max: 255 },
+    { id: 'andro', label: 'Androgynous',    min: 145, max: 200 },
+    { id: 'custom', label: 'Custom range',  min: 140, max: 220 },
+  ];
+
+  const PRACTICE_DURATIONS = [
+    { label: '3 min', sec: 180 },
+    { label: '5 min', sec: 300 },
+    { label: '10 min', sec: 600 },
+  ];
+
+  const HISTORY_KEY = 'tonotype.practice.v1';
+  const HISTORY_MAX = 60;
+
+  /* ───────────────────────────── STATE ───────────────────────────── */
+
+  const state = {
+    phase: 'idle',
+    mode: 'free',
+    listening: false,
+    count: 0,
+    calibration: { samples: [], pMin: null, pMax: null, startedAt: 0 },
+    passage: null,
+    language: LANGUAGE_PRESETS[0],
+    speakers: {
+      current: 'a',
+      baselineA: null,
+      baselineB: null,
+      detectedTwo: false,
+      lastSwitchT: 0,
+    },
+    practice: {
+      preset: null,          // chosen preset object
+      targetMin: null,       // resolved Hz
+      targetMax: null,
+      durationS: 0,
+      startedAt: 0,
+      hitFrames: 0,
+      totalFrames: 0,
+      currentStreakFrames: 0,
+      longestStreakFrames: 0,
+      pitches: [],           // collected over session for avg/range
+      ended: false,
+    },
+  };
+
+  /* ───────────────────────────── DOM ───────────────────────────── */
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    startBtn:        $('startBtn'),
+    startVariableBtn: $('startVariableBtn'),
+    clearBtn:        $('clearBtn'),
+    exportBtn:       $('exportBtn'),
+    specimen:      $('specimen'),
+    main:          $('main'),
+    dot:           $('dot'),
+    status:        $('statusText'),
+    livePitch:     $('livePitch'),
+    liveBucket:    $('liveBucket'),
+    count:         $('count'),
+    marker:        $('marker'),
+    bucketsEl:     $('scaleBuckets'),
+    preload:       $('preload'),
+    axis:          document.querySelector('.scale-axis'),
+    scaleLabel:    document.querySelector('.scale-label'),
+    calib:         $('calib'),
+    calibLabel:    $('calibLabel'),
+    calibHint:     $('calibHint'),
+    calibFill:     $('calibFill'),
+    calibFoot:     $('calibFoot'),
+    reading:       $('reading'),
+    rPassage:      $('rPassage'),
+    readingHeader: $('readingHeader'),
+    passageCards:  $('passageCards'),
+    customOverlay: $('customOverlay'),
+    customText:    $('customText'),
+    customGo:      $('customGo'),
+    customCancel:  $('customCancel'),
+    customErr:     $('customErr'),
+    stageBtn:      $('stageBtn'),
+    stageExit:     $('stageExit'),
+    shareBtn:      $('shareBtn'),
+    shareToast:    $('shareToast'),
+    langOptions:   $('langOptions'),
+    returningBanner: $('returningBanner'),
+    rbRange:       $('rbRange'),
+    rbMeta:        $('rbMeta'),
+    rbForget:      $('rbForget'),
+    // practice mode
+    startPracticeBtn: $('startPracticeBtn'),
+    status:        $('status'),
+    practiceTimer: $('practiceTimer'),
+    practiceHit:   $('practiceHit'),
+    targetBand:    $('targetBand'),
+    targetBandLabel: $('targetBandLabel'),
+    psOverlay:     $('psOverlay'),
+    psCancel:      $('psCancel'),
+    psGo:          $('psGo'),
+    presetGrid:    $('presetGrid'),
+    durationRow:   $('durationRow'),
+    prOverlay:     $('prOverlay'),
+    prHeadline:    $('prHeadline'),
+    prSub:         $('prSub'),
+    metricsGrid:   $('metricsGrid'),
+    prDone:        $('prDone'),
+    prAgain:       $('prAgain'),
+    historyBtn:    $('historyBtn'),
+    histOverlay:   $('histOverlay'),
+    histClose:     $('histClose'),
+    histCount:     $('histCount'),
+    sparkline:     $('sparkline'),
+    sessionList:   $('sessionList'),
+    histClear:     $('histClear'),
+    // live demo
+    liveDemo:       $('liveDemo'),
+    liveDemoTrigger:$('liveDemoTrigger'),
+    liveDemoWord:   $('liveDemoWord'),
+    liveDemoHint:   $('liveDemoHint'),
+    liveDemoDot:    $('liveDemoDot'),
+    liveDemoReadout:$('liveDemoReadout'),
+  };
+
+  /* ─────────── BUCKET MATH (uses active range) ─────────── */
+
+  function getActiveRange() {
+    if (state.calibration.pMin && state.calibration.pMax) {
+      return { min: state.calibration.pMin, max: state.calibration.pMax };
+    }
+    // Pre-calibration: use the language preset envelope.
+    return { min: state.language.minHz, max: state.language.maxHz };
+  }
+
+  function bucketFor(pitch) {
+    const { min, max } = getActiveRange();
+    const minL = Math.log(min);
+    const maxL = Math.log(max);
+    const span = maxL - minL || 1;
+    const clamped = Math.max(min, Math.min(max, pitch));
+    const t = (Math.log(clamped) - minL) / span;
+    const idx = Math.min(FONT_BUCKETS.length - 1, Math.max(0, Math.floor(t * FONT_BUCKETS.length)));
+    return FONT_BUCKETS[idx];
+  }
+
+  function pctOnScale(pitch) {
+    const { min, max } = getActiveRange();
+    const minL = Math.log(min);
+    const maxL = Math.log(max);
+    const span = maxL - minL || 1;
+    const clamped = Math.max(min, Math.min(max, pitch));
+    return ((Math.log(clamped) - minL) / span) * 100;
+  }
+
+  function pickFont(bucket) {
+    return bucket.fonts[Math.floor(Math.random() * bucket.fonts.length)];
+  }
+
+  /* ─────────── SCALE UI ─────────── */
+
+  function rebuildScale() {
+    els.bucketsEl.innerHTML = '';
+    // The target band lives inside .scale-buckets so it aligns with cells.
+    // Re-attach it after the clear so practice mode's overlay survives a rebuild.
+    if (els.targetBand) els.bucketsEl.appendChild(els.targetBand);
+    const { min, max } = getActiveRange();
+    const minL = Math.log(min);
+    const maxL = Math.log(max);
+    const span = maxL - minL || 1;
+    const n = FONT_BUCKETS.length;
+
+    FONT_BUCKETS.forEach((b, i) => {
+      const cellMin = Math.exp(minL + (i / n) * span);
+      const cellMax = Math.exp(minL + ((i + 1) / n) * span);
+      const widthPct = 100 / n;
+
+      const cell = document.createElement('div');
+      cell.className = 'scale-bucket';
+      cell.dataset.bucket = b.name;
+      cell.style.flexBasis = widthPct + '%';
+
+      const sample = b.fonts[0];
+      const glyph = document.createElement('span');
+      glyph.className = 'bucket-glyph';
+      glyph.textContent = 'Aa';
+      glyph.style.fontFamily = `'${sample.family}', serif`;
+      glyph.style.fontWeight = sample.weight;
+      glyph.style.fontStyle = sample.style;
+
+      const meta = document.createElement('span');
+      meta.className = 'bucket-meta';
+      meta.innerHTML = `<span class="bucket-name">${b.label}</span><span class="bucket-range">${Math.round(cellMin)}–${Math.round(cellMax)}</span>`;
+
+      cell.appendChild(glyph);
+      cell.appendChild(meta);
+      els.bucketsEl.appendChild(cell);
+    });
+
+    els.axis.innerHTML = '';
+    for (let i = 0; i <= 5; i++) {
+      const t = i / 5;
+      const hz = Math.round(Math.exp(minL + t * span));
+      const sp = document.createElement('span');
+      sp.textContent = (i === 0 || i === 5) ? `${hz} Hz` : `${hz}`;
+      els.axis.appendChild(sp);
+    }
+
+    const calibrated = state.calibration.pMin && state.calibration.pMax;
+    els.scaleLabel.textContent = calibrated
+      ? `your voice · ${Math.round(min)} → ${Math.round(max)} hz · logarithmic`
+      : `${state.language.full.toLowerCase()} · ${state.language.minHz} → ${state.language.maxHz} hz · logarithmic`;
+  }
+
+  function preloadFonts() {
+    const all = new Set();
+    FONT_BUCKETS.forEach((b) => b.fonts.forEach((f) => all.add(`${f.family}|${f.weight}|${f.style}`)));
+    all.forEach((key) => {
+      const [family, weight, style] = key.split('|');
+      const s = document.createElement('span');
+      s.textContent = 'Aa Bb Cc';
+      s.style.fontFamily = `'${family}', serif`;
+      s.style.fontWeight = weight;
+      s.style.fontStyle = style;
+      s.style.fontSize = '40px';
+      els.preload.appendChild(s);
+    });
+    // Preload Fraunces variable across a few axis extremes so the first
+    // variable-mode word renders in the real face, not a fallback.
+    const fraunces = [
+      '"opsz" 12, "wght" 200, "SOFT" 0, "WONK" 0',
+      '"opsz" 72, "wght" 500, "SOFT" 50, "WONK" 0.5',
+      '"opsz" 144, "wght" 900, "SOFT" 100, "WONK" 1',
+    ];
+    fraunces.forEach((settings) => {
+      const s = document.createElement('span');
+      s.textContent = 'Aa Bb Cc';
+      s.style.fontFamily = "'Fraunces', serif";
+      s.style.fontVariationSettings = settings;
+      s.style.fontSize = '40px';
+      els.preload.appendChild(s);
+    });
+  }
+
+  /* ─────────── PASSAGE SELECTOR ─────────── */
+
+  function buildPassageCards() {
+    PASSAGES.forEach((p) => {
+      const btn = document.createElement('button');
+      btn.className = 'passage-card';
+      btn.dataset.passage = p.id;
+      btn.innerHTML = `<span class="pc-source">${p.source}</span><span class="pc-title">${p.title}</span>`;
+      btn.addEventListener('click', () => startSession('reading', p.id));
+      els.passageCards.appendChild(btn);
+    });
+
+    // Custom card (5th)
+    const cbtn = document.createElement('button');
+    cbtn.className = 'passage-card passage-card-custom';
+    cbtn.innerHTML = `<span class="pc-source">CUSTOM</span><span class="pc-title">Paste your text</span>`;
+    cbtn.addEventListener('click', openCustomModal);
+    els.passageCards.appendChild(cbtn);
+  }
+
+  /* ─────────── LANGUAGE PICKER ─────────── */
+
+  function buildLanguagePicker() {
+    LANGUAGE_PRESETS.forEach((preset) => {
+      const btn = document.createElement('button');
+      btn.className = 'lang-option' + (preset.id === state.language.id ? ' active' : '');
+      btn.dataset.lang = preset.id;
+      btn.title = preset.full;
+      btn.textContent = preset.label;
+      btn.addEventListener('click', () => switchLanguage(preset.id));
+      els.langOptions.appendChild(btn);
+    });
+  }
+
+  function switchLanguage(id) {
+    const preset = LANGUAGE_PRESETS.find((p) => p.id === id);
+    if (!preset || state.listening) return;
+    state.language = preset;
+    els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
+      b.classList.toggle('active', b.dataset.lang === id);
+    });
+    // Clear any prior calibration on language switch — different language,
+    // potentially different speaker, definitely different expectations.
+    state.calibration.pMin = null;
+    state.calibration.pMax = null;
+    rebuildScale();
+  }
+
+  /* ─────────── PHONEME HELPER ─────────── */
+
+  // Heuristic only — true phoneme detection needs a model. This catches the
+  // visual intent (vowels breathe, consonants tighten) for English-like words.
+  const VOWEL_RE = /[aeiouAEIOU]/;
+  function classifyLetter(ch) {
+    if (VOWEL_RE.test(ch)) return 'vowel';
+    if (/[a-zA-Z]/.test(ch)) return 'consonant';
+    return null;
+  }
+
+  /* ─────────── VOICE FINGERPRINT (localStorage) ─────────── */
+
+  function saveFingerprint() {
+    if (!state.calibration.pMin || !state.calibration.pMax) return;
+    try {
+      localStorage.setItem(FINGERPRINT_KEY, JSON.stringify({
+        pMin: state.calibration.pMin,
+        pMax: state.calibration.pMax,
+        lang: state.language.id,
+        savedAt: Date.now(),
+        sessions: (loadFingerprint()?.sessions || 0) + 1,
+      }));
+    } catch (e) { /* localStorage unavailable */ }
+  }
+
+  function loadFingerprint() {
+    try {
+      const raw = localStorage.getItem(FINGERPRINT_KEY);
+      if (!raw) return null;
+      const fp = JSON.parse(raw);
+      const ageMs = Date.now() - (fp.savedAt || 0);
+      if (ageMs > FINGERPRINT_TTL_DAYS * 86400 * 1000) return null;
+      return fp;
+    } catch (e) { return null; }
+  }
+
+  function forgetFingerprint() {
+    try { localStorage.removeItem(FINGERPRINT_KEY); } catch (e) {}
+    state.calibration.pMin = null;
+    state.calibration.pMax = null;
+    els.returningBanner.classList.remove('show');
+    rebuildScale();
+  }
+
+  function showReturningBanner(fp) {
+    const age = Date.now() - fp.savedAt;
+    const days = Math.floor(age / 86400000);
+    const hours = Math.floor(age / 3600000);
+    let agoStr;
+    if (days >= 1) agoStr = `${days}d ago`;
+    else if (hours >= 1) agoStr = `${hours}h ago`;
+    else agoStr = 'just now';
+    els.rbRange.textContent = ` ${Math.round(fp.pMin)} – ${Math.round(fp.pMax)} Hz`;
+    els.rbMeta.textContent = `last seen ${agoStr} · ${fp.sessions || 1} session${fp.sessions === 1 ? '' : 's'}`;
+    els.returningBanner.classList.add('show');
+  }
+
+  /* ─────────── MULTI-SPEAKER DETECTION ─────────── */
+
+  // Maintain a long-window median per speaker. When a sustained pitch baseline
+  // appears that's far from the current speaker's baseline (>30% in log space),
+  // register that as speaker B and switch.
+  function updateSpeakerBaseline(ts) {
+    if (pitchHistory.length < 40) return; // need ≥ ~1.6s of samples
+    const win = 2500; // 2.5s window
+    const recent = pitchHistory.filter((s) => s.t >= ts - win).map((s) => s.pitch);
+    if (recent.length < 20) return;
+    recent.sort((a, b) => a - b);
+    const median = recent[Math.floor(recent.length / 2)];
+
+    const sp = state.speakers;
+    if (sp.baselineA === null) {
+      sp.baselineA = median;
+      return;
+    }
+    // Update baseline for current speaker (slow EMA)
+    if (sp.current === 'a') {
+      sp.baselineA = sp.baselineA * 0.97 + median * 0.03;
+    } else {
+      sp.baselineB = (sp.baselineB ?? median) * 0.97 + median * 0.03;
+    }
+
+    // Detect a switch: current median far from current baseline, close to other
+    const switchCooldownMs = 1200;
+    if (ts - sp.lastSwitchT < switchCooldownMs) return;
+
+    const currBase = sp.current === 'a' ? sp.baselineA : sp.baselineB;
+    const otherBase = sp.current === 'a' ? sp.baselineB : sp.baselineA;
+    const distFromCurrent = Math.abs(Math.log(median) - Math.log(currBase));
+
+    if (distFromCurrent > 0.30) { // ~30% log distance ≈ a perfect 4th interval
+      if (otherBase === null) {
+        // First time seeing a second speaker — register B
+        sp.baselineB = median;
+        sp.detectedTwo = true;
+        sp.current = 'b';
+        sp.lastSwitchT = ts;
+      } else {
+        const distFromOther = Math.abs(Math.log(median) - Math.log(otherBase));
+        if (distFromOther < distFromCurrent * 0.5) {
+          sp.current = sp.current === 'a' ? 'b' : 'a';
+          sp.lastSwitchT = ts;
+        }
+      }
+    }
+  }
+
+  /* ─────────── PRACTICE MODE (target-range vocal training) ─────────── */
+
+  let presetSelection = PRACTICE_PRESETS[1]; // default Feminizing — most common request
+  let durationSelection = PRACTICE_DURATIONS[1]; // default 5 min
+  let customMin = 140, customMax = 220;
+  let practiceTickT = 0;
+
+  function buildPresetGrid() {
+    els.presetGrid.innerHTML = '';
+    PRACTICE_PRESETS.forEach((p) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'preset-card' + (p.id === 'custom' ? ' custom-fields' : '') + (p.id === presetSelection.id ? ' active custom' : '');
+      card.dataset.preset = p.id;
+      if (p.id !== 'custom') {
+        card.innerHTML =
+          `<span class="preset-card-name">${p.label}</span>` +
+          `<span class="preset-card-range">${p.min} – ${p.max} Hz</span>`;
+      } else {
+        card.innerHTML =
+          `<span class="preset-card-name">${p.label}</span>` +
+          `<span class="preset-card-range" id="customRangeText">${customMin} – ${customMax} Hz</span>` +
+          `<div class="custom-range-row">` +
+            `<input type="number" id="customMin" min="50" max="2000" value="${customMin}" />` +
+            `<span class="arrow">→</span>` +
+            `<input type="number" id="customMax" min="50" max="2000" value="${customMax}" />` +
+            `<span class="arrow">Hz</span>` +
+          `</div>`;
+      }
+      card.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        selectPreset(p.id);
+      });
+      els.presetGrid.appendChild(card);
+    });
+    // Wire up custom range inputs
+    const cMin = document.getElementById('customMin');
+    const cMax = document.getElementById('customMax');
+    if (cMin && cMax) {
+      [cMin, cMax].forEach((input) => {
+        input.addEventListener('input', () => {
+          const lo = parseInt(cMin.value, 10);
+          const hi = parseInt(cMax.value, 10);
+          if (lo > 0 && hi > 0 && lo < hi) {
+            customMin = lo; customMax = hi;
+            const txt = document.getElementById('customRangeText');
+            if (txt) txt.textContent = `${customMin} – ${customMax} Hz`;
+            if (presetSelection.id === 'custom') {
+              presetSelection.min = lo; presetSelection.max = hi;
+            }
+          }
+        });
+      });
+    }
+  }
+
+  function selectPreset(id) {
+    const p = PRACTICE_PRESETS.find((x) => x.id === id);
+    if (!p) return;
+    if (id === 'custom') { p.min = customMin; p.max = customMax; }
+    presetSelection = p;
+    els.presetGrid.querySelectorAll('.preset-card').forEach((c) => {
+      c.classList.toggle('active', c.dataset.preset === id);
+      c.classList.toggle('custom', c.dataset.preset === 'custom' && id === 'custom');
+    });
+  }
+
+  function buildDurationRow() {
+    els.durationRow.innerHTML = '';
+    PRACTICE_DURATIONS.forEach((d) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'duration-card' + (d.sec === durationSelection.sec ? ' active' : '');
+      card.dataset.sec = d.sec;
+      card.textContent = d.label;
+      card.addEventListener('click', () => selectDuration(d.sec));
+      els.durationRow.appendChild(card);
+    });
+  }
+
+  function selectDuration(sec) {
+    const d = PRACTICE_DURATIONS.find((x) => x.sec === sec);
+    if (!d) return;
+    durationSelection = d;
+    els.durationRow.querySelectorAll('.duration-card').forEach((c) => {
+      c.classList.toggle('active', parseInt(c.dataset.sec, 10) === sec);
+    });
+  }
+
+  function openPracticeSetup() {
+    if (state.listening) return;
+    els.psOverlay.classList.add('open');
+  }
+  function closePracticeSetup() {
+    els.psOverlay.classList.remove('open');
+  }
+
+  // Map an Hz value to a horizontal position-percent on the scale.
+  function hzToScalePct(hz) { return pctOnScale(hz); }
+
+  function showTargetBand(min, max) {
+    if (!min || !max) return;
+    const lo = hzToScalePct(min);
+    const hi = hzToScalePct(max);
+    els.targetBand.style.left = lo + '%';
+    els.targetBand.style.width = (hi - lo) + '%';
+    els.targetBand.classList.add('show');
+    els.targetBandLabel.textContent = `target · ${Math.round(min)}–${Math.round(max)} hz`;
+  }
+  function hideTargetBand() {
+    els.targetBand.classList.remove('show');
+  }
+
+  function startPracticeSession() {
+    closePracticeSetup();
+    // Resolve target from preset (custom may have just been edited)
+    const preset = presetSelection.id === 'custom'
+      ? { ...presetSelection, min: customMin, max: customMax }
+      : presetSelection;
+    state.practice = {
+      preset,
+      targetMin: preset.min,
+      targetMax: preset.max,
+      durationS: durationSelection.sec,
+      startedAt: 0,                 // set when phase becomes 'capturing'
+      hitFrames: 0,
+      totalFrames: 0,
+      currentStreakFrames: 0,
+      longestStreakFrames: 0,
+      pitches: [],
+      ended: false,
+    };
+    startSession('practice');
+  }
+
+  // Called per pitch detection frame while practice is capturing.
+  function tickPractice(ts, pitch) {
+    const p = state.practice;
+    if (p.ended) return;
+    if (!p.startedAt) p.startedAt = ts;
+    p.totalFrames++;
+    p.pitches.push(pitch);
+    const inTarget = pitch >= p.targetMin && pitch <= p.targetMax;
+    if (inTarget) {
+      p.hitFrames++;
+      p.currentStreakFrames++;
+      if (p.currentStreakFrames > p.longestStreakFrames) {
+        p.longestStreakFrames = p.currentStreakFrames;
+      }
+    } else {
+      p.currentStreakFrames = 0;
+    }
+    // Update timer / hit-rate display ~10x/sec
+    if (ts - practiceTickT > 100) {
+      practiceTickT = ts;
+      const elapsedS = Math.floor((ts - p.startedAt) / 1000);
+      const remainingS = Math.max(0, p.durationS - elapsedS);
+      const mm = Math.floor(remainingS / 60);
+      const ss = remainingS % 60;
+      els.practiceTimer.textContent = `${mm}:${String(ss).padStart(2, '0')}`;
+      const pct = p.totalFrames ? Math.round((p.hitFrames / p.totalFrames) * 100) : 0;
+      els.practiceHit.textContent = `in-target ${pct}%`;
+    }
+    if ((ts - p.startedAt) / 1000 >= p.durationS) {
+      endPractice();
+    }
+  }
+
+  function endPractice() {
+    const p = state.practice;
+    if (p.ended) return;
+    p.ended = true;
+    state.phase = 'idle';
+    state.listening = false;
+    setStatus('session complete', false);
+    els.status.classList.remove('practice-active');
+    hideTargetBand();
+
+    // Compute metrics
+    const totalSec = p.durationS;
+    const hitPct = p.totalFrames ? Math.round((p.hitFrames / p.totalFrames) * 100) : 0;
+    const avgPitch = p.pitches.length
+      ? Math.round(p.pitches.reduce((a, b) => a + b, 0) / p.pitches.length)
+      : 0;
+    const rangeMin = p.pitches.length ? Math.round(Math.min(...p.pitches)) : 0;
+    const rangeMax = p.pitches.length ? Math.round(Math.max(...p.pitches)) : 0;
+    const longestStreakS = Math.round(p.longestStreakFrames * 0.040 * 10) / 10; // ~25fps
+    const wordCount = state.count;
+
+    const stats = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      durationS: totalSec,
+      targetMin: p.targetMin,
+      targetMax: p.targetMax,
+      presetId: p.preset.id,
+      presetLabel: p.preset.label,
+      hitPct, avgPitch, rangeMin, rangeMax,
+      longestStreakS,
+      wordCount,
+    };
+
+    saveSession(stats);
+    showPracticeResults(stats);
+    // Stop the running mic / speech recognition
+    teardownAudio();
+  }
+
+  function showPracticeResults(stats) {
+    els.prHeadline.innerHTML = `Spent <span class="pct">${stats.hitPct}%</span>`;
+    els.prSub.textContent = `in your target range (${stats.targetMin}–${stats.targetMax} Hz · ${stats.presetLabel})`;
+    els.metricsGrid.innerHTML = `
+      <div class="metric-cell"><div class="metric-key">Avg pitch</div><div class="metric-value">${stats.avgPitch}<span class="unit">Hz</span></div></div>
+      <div class="metric-cell"><div class="metric-key">Your range</div><div class="metric-value">${stats.rangeMin}–${stats.rangeMax}<span class="unit">Hz</span></div></div>
+      <div class="metric-cell"><div class="metric-key">Longest streak</div><div class="metric-value">${stats.longestStreakS.toFixed(1)}<span class="unit">sec</span></div></div>
+      <div class="metric-cell"><div class="metric-key">Duration</div><div class="metric-value">${Math.floor(stats.durationS / 60)}:${String(stats.durationS % 60).padStart(2, '0')}<span class="unit">min</span></div></div>
+      <div class="metric-cell"><div class="metric-key">Words captured</div><div class="metric-value">${stats.wordCount}</div></div>
+      <div class="metric-cell"><div class="metric-key">Target</div><div class="metric-value">${stats.presetLabel}</div></div>
+    `;
+    els.prOverlay.classList.add('open');
+  }
+
+  function saveSession(stats) {
+    try {
+      const list = loadSessions();
+      list.unshift(stats);
+      // Cap to last HISTORY_MAX
+      const trimmed = list.slice(0, HISTORY_MAX);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+    } catch (e) { /* localStorage unavailable */ }
+  }
+
+  function loadSessions() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw) || [];
+    } catch (e) { return []; }
+  }
+
+  function clearHistory() {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    renderHistory();
+  }
+
+  function openHistory() {
+    renderHistory();
+    els.histOverlay.classList.add('open');
+  }
+  function closeHistory() {
+    els.histOverlay.classList.remove('open');
+  }
+
+  function renderHistory() {
+    const sessions = loadSessions();
+    els.histCount.textContent = sessions.length;
+    if (!sessions.length) {
+      els.sessionList.innerHTML = '<div class="hist-empty">No practice sessions yet. Try one — it takes 3 minutes.</div>';
+      // clear sparkline
+      const ctx = els.sparkline.getContext('2d');
+      ctx.clearRect(0, 0, els.sparkline.width, els.sparkline.height);
+      return;
+    }
+    renderSparkline(els.sparkline, sessions);
+    els.sessionList.innerHTML = '';
+    sessions.forEach((s) => {
+      const row = document.createElement('div');
+      row.className = 'session-row';
+      const d = new Date(s.date);
+      const dateStr = d.toLocaleDateString('en-CA');
+      row.innerHTML =
+        `<span class="sr-date">${dateStr}</span>` +
+        `<span class="sr-preset">${s.presetLabel} · ${s.targetMin}–${s.targetMax} Hz</span>` +
+        `<span class="sr-duration">${Math.floor(s.durationS / 60)} min</span>` +
+        `<span class="sr-rate">${s.hitPct}% in target</span>`;
+      els.sessionList.appendChild(row);
+    });
+  }
+
+  function renderSparkline(canvas, sessions) {
+    const ctx = canvas.getContext('2d');
+    // Scale to device pixel ratio for crispness
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = canvas.parentElement.clientWidth;
+    const cssHeight = 80;
+    canvas.style.width = cssWidth + 'px';
+    canvas.style.height = cssHeight + 'px';
+    canvas.width = cssWidth * dpr;
+    canvas.height = cssHeight * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+    // Chronological order: oldest left, newest right
+    const ordered = sessions.slice().reverse();
+    const points = ordered.map((s, i) => ({
+      x: ordered.length === 1 ? cssWidth / 2 : (i / (ordered.length - 1)) * (cssWidth - 4) + 2,
+      y: cssHeight - (s.hitPct / 100) * cssHeight,
+      pct: s.hitPct,
+    }));
+
+    // Mid-line at 50%
+    ctx.strokeStyle = 'rgba(26,24,21,0.12)';
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(0, cssHeight * 0.5);
+    ctx.lineTo(cssWidth, cssHeight * 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Line
+    ctx.strokeStyle = '#c0431f';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+
+    // Dots
+    ctx.fillStyle = '#c0431f';
+    points.forEach((p) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Latest dot bigger
+    if (points.length) {
+      const last = points[points.length - 1];
+      ctx.fillStyle = '#c0431f';
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      // Label
+      ctx.fillStyle = '#1a1815';
+      ctx.font = '600 10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${last.pct}%`, last.x - 8, last.y + 4);
+    }
+  }
+
+  // Clean teardown of mic + speech recognition (used at end of practice)
+  function teardownAudio() {
+    try { if (recognition) { recognition.onend = null; recognition.stop(); } } catch (e) {}
+    try { if (mediaStream) mediaStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    try { if (audioCtx) audioCtx.close(); } catch (e) {}
+  }
+
+  /* ─────────── STAGE MODE ─────────── */
+
+  let mouseIdleTimer = null;
+  function enterStageMode() {
+    document.body.classList.add('stage-mode');
+    resetMouseTimer();
+  }
+  function exitStageMode() {
+    document.body.classList.remove('stage-mode', 'idle-mouse');
+    if (mouseIdleTimer) { clearTimeout(mouseIdleTimer); mouseIdleTimer = null; }
+  }
+  function resetMouseTimer() {
+    document.body.classList.remove('idle-mouse');
+    if (mouseIdleTimer) clearTimeout(mouseIdleTimer);
+    mouseIdleTimer = setTimeout(() => {
+      if (document.body.classList.contains('stage-mode')) {
+        document.body.classList.add('idle-mouse');
+      }
+    }, 2500);
+  }
+
+  /* ─────────── LIVE DEMO (Fraunces, real-time wght+opsz) ─────────── */
+
+  // Independent of the main session — its own AudioContext + MediaStream so
+  // visitors can see the modulation effect immediately, before deciding to
+  // start a real session. Released when a real session begins (browsers
+  // typically can't share mic input across multiple getUserMedia consumers
+  // reliably, and we don't want to compete with the main analyser).
+
+  let ldCtx = null, ldAnalyser = null, ldStream = null, ldBuf = null;
+  let liveDemoRAF = null;
+  let liveDemoActive = false;
+
+  async function activateLiveDemo() {
+    if (liveDemoActive || state.listening) return;
+    try {
+      ldStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: false },
+      });
+      ldCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ldCtx.createMediaStreamSource(ldStream);
+      ldAnalyser = ldCtx.createAnalyser();
+      ldAnalyser.fftSize = 2048;
+      src.connect(ldAnalyser);
+      ldBuf = new Float32Array(ldAnalyser.fftSize);
+      liveDemoActive = true;
+      els.liveDemo.classList.add('active');
+      runLiveDemo();
+    } catch (e) {
+      els.liveDemoHint.querySelector('.ldh-key').textContent = 'mic blocked';
+    }
+  }
+
+  function deactivateLiveDemo() {
+    liveDemoActive = false;
+    if (liveDemoRAF) { cancelAnimationFrame(liveDemoRAF); liveDemoRAF = null; }
+    try { if (ldStream) ldStream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+    try { if (ldCtx) ldCtx.close(); } catch (e) {}
+    ldStream = null; ldCtx = null; ldAnalyser = null; ldBuf = null;
+    els.liveDemo.classList.remove('active');
+  }
+
+  let liveDemoLastTick = 0;
+  let liveDemoSmoothedRMS = 0;
+  let liveDemoSmoothedPitch = 0;
+
+  function runLiveDemo() {
+    if (!liveDemoActive) return;
+    liveDemoRAF = requestAnimationFrame(runLiveDemo);
+    const now = performance.now();
+    // Cap to ~30fps (33ms) — plenty smooth, easier on CPU than full 60.
+    if (now - liveDemoLastTick < 33) return;
+    liveDemoLastTick = now;
+
+    ldAnalyser.getFloatTimeDomainData(ldBuf);
+
+    // RMS
+    let sum = 0;
+    for (let i = 0; i < ldBuf.length; i++) sum += ldBuf[i] * ldBuf[i];
+    const rms = Math.sqrt(sum / ldBuf.length);
+    liveDemoSmoothedRMS = liveDemoSmoothedRMS === 0 ? rms : liveDemoSmoothedRMS * 0.55 + rms * 0.45;
+
+    // Pitch (cheap autocorrelation; same function as main loop)
+    const raw = autoCorrelate(ldBuf, ldCtx.sampleRate);
+    let pitch = liveDemoSmoothedPitch;
+    if (raw !== -1 && raw > MIN_HZ && raw < MAX_HZ) {
+      pitch = liveDemoSmoothedPitch === 0 ? raw : liveDemoSmoothedPitch * 0.7 + raw * 0.3;
+      liveDemoSmoothedPitch = pitch;
+    }
+
+    const wght = mapRMSToWght(liveDemoSmoothedRMS);
+    // For opsz, use pitch if we have one; otherwise a neutral middle value.
+    let opsz = 60;
+    if (pitch > MIN_HZ && pitch < MAX_HZ) {
+      opsz = mapPitchToOpsz(pitch);
+    }
+
+    els.liveDemoWord.style.fontWeight = Math.round(wght);
+    els.liveDemoWord.style.fontVariationSettings =
+      `"opsz" ${opsz.toFixed(1)}, "SOFT" 0, "WONK" 0`;
+
+    // Readout — only show when we have signal worth showing
+    if (liveDemoSmoothedRMS > 0.008) {
+      els.liveDemoReadout.textContent =
+        `· wght ${Math.round(wght)} · opsz ${Math.round(opsz)}` +
+        (pitch > MIN_HZ ? ` · ${Math.round(pitch)} Hz` : '');
+    } else {
+      els.liveDemoReadout.textContent = '';
+    }
+  }
+
+  /* ─────────── SHARE-URL ENCODE / DECODE ─────────── */
+
+  // Encode the current specimen state into a compact URL hash:
+  // mode + per-word { speaker, pitch, axisData|fontKey, word }
+  // base64-encoded JSON for simplicity (gzip would be nicer but adds bytes).
+
+  function encodeSpecimen() {
+    const blocks = [];
+    document.querySelectorAll('.specimen .word-block').forEach((b) => {
+      const text = b.querySelector('.word-text');
+      const meta = b.querySelector('.word-meta');
+      if (!text) return;
+      const letters = text.querySelectorAll('.letter');
+      const variable = text.classList.contains('variable');
+      const speaker = b.classList.contains('speaker-b') ? 'b' : 'a';
+      blocks.push({
+        w: text.textContent,
+        s: speaker,
+        v: variable ? 1 : 0,
+        f: variable ? null : (text.style.fontFamily || ''),
+        ff: variable ? null : (text.style.fontWeight || ''),
+        fs: variable ? null : (text.style.fontStyle || ''),
+        vs: variable ? (text.style.fontVariationSettings || '') : null,
+        vw: variable ? (text.style.fontWeight || '') : null,
+        sz: text.style.getPropertyValue('--size') || '',
+        m:  meta ? meta.textContent : '',
+        morph: letters.length > 0 ? 1 : 0,
+      });
+    });
+    return {
+      m: state.mode,
+      lang: state.language.id,
+      r: state.calibration.pMin && state.calibration.pMax
+        ? [Math.round(state.calibration.pMin), Math.round(state.calibration.pMax)]
+        : null,
+      b: blocks,
+    };
+  }
+
+  async function shareSpecimen() {
+    const payload = encodeSpecimen();
+    if (!payload.b.length) {
+      flashShareToast('Speak something first');
+      return;
+    }
+    const json = JSON.stringify(payload);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+    const url = `${location.origin}${location.pathname}#s=${encoded}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      flashShareToast('Specimen link copied');
+    } catch (e) {
+      // Fallback — show URL in a prompt
+      window.prompt('Copy this link to share:', url);
+    }
+  }
+
+  function flashShareToast(text) {
+    document.getElementById('shareToastText').textContent = text;
+    els.shareToast.classList.add('show');
+    setTimeout(() => els.shareToast.classList.remove('show'), 2200);
+  }
+
+  function tryRestoreFromHash() {
+    if (!location.hash.startsWith('#s=')) return;
+    try {
+      const encoded = location.hash.slice(3);
+      const json = decodeURIComponent(escape(atob(encoded)));
+      const payload = JSON.parse(json);
+      restoreSpecimen(payload);
+    } catch (e) {
+      console.warn('Could not restore specimen from URL', e);
+    }
+  }
+
+  function restoreSpecimen(payload) {
+    // Set language
+    if (payload.lang) {
+      const preset = LANGUAGE_PRESETS.find((p) => p.id === payload.lang);
+      if (preset) state.language = preset;
+    }
+    // Set range if present (so bucket math + scale draw correctly)
+    if (payload.r) {
+      state.calibration.pMin = payload.r[0];
+      state.calibration.pMax = payload.r[1];
+    }
+    rebuildScale();
+    els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
+      b.classList.toggle('active', b.dataset.lang === state.language.id);
+    });
+    // Hide hero — this is a viewing page now
+    els.main.classList.add('listening', 'has-words');
+    setStatus('viewing shared specimen', false);
+
+    // Render each captured word
+    (payload.b || []).forEach((blk) => {
+      const block = document.createElement('div');
+      block.className = 'word-block' + (blk.s === 'b' ? ' speaker-b' : '');
+      state.count++;
+
+      const num = document.createElement('span');
+      num.className = 'word-index';
+      num.textContent = 'N° ' + String(state.count).padStart(3, '0');
+      block.appendChild(num);
+
+      const w = document.createElement('span');
+      w.className = 'word-text' + (blk.v ? ' variable' : '');
+      w.textContent = blk.w;
+      if (blk.sz) w.style.setProperty('--size', blk.sz);
+      if (blk.v) {
+        if (blk.vw) w.style.fontWeight = blk.vw;
+        if (blk.vs) w.style.fontVariationSettings = blk.vs;
+      } else {
+        if (blk.f)  w.style.fontFamily = blk.f;
+        if (blk.ff) w.style.fontWeight = blk.ff;
+        if (blk.fs) w.style.fontStyle = blk.fs;
+      }
+      block.appendChild(w);
+
+      if (blk.m) {
+        const meta = document.createElement('span');
+        meta.className = 'word-meta';
+        meta.textContent = blk.m;
+        block.appendChild(meta);
+      }
+      els.specimen.appendChild(block);
+    });
+    els.count.textContent = String(state.count).padStart(3, '0');
+  }
+
+  /* ─────────── AUDIO / PITCH ─────────── */
+
+  let audioCtx, analyser, mediaStream;
+  let buf;
+  let smoothedPitch = 0;
+  let smoothedRMS = 0;
+  const pitchHistory = [];
+  const rmsHistory = [];
+  const HISTORY_MS = 3000;
+  let lastDetectAt = 0;
+
+  async function startAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: true,
+        autoGainControl: false,
+      },
+    });
+    const src = audioCtx.createMediaStreamSource(mediaStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    src.connect(analyser);
+    buf = new Float32Array(analyser.fftSize);
+    requestAnimationFrame(loop);
+  }
+
+  function loop(ts) {
+    if (ts - lastDetectAt > 40) {
+      lastDetectAt = ts;
+      analyser.getFloatTimeDomainData(buf);
+
+      // Loudness (RMS) — independent of pitch
+      const rms = computeRMSFromBuffer(buf);
+      smoothedRMS = smoothedRMS === 0 ? rms : smoothedRMS * 0.6 + rms * 0.4;
+      rmsHistory.push({ t: ts, rms: smoothedRMS });
+      const cut = ts - HISTORY_MS;
+      while (rmsHistory.length && rmsHistory[0].t < cut) rmsHistory.shift();
+
+      // Pitch
+      const raw = autoCorrelate(buf, audioCtx.sampleRate);
+      if (raw !== -1 && raw > MIN_HZ && raw < MAX_HZ) {
+        const ref = getRefPitch();
+        const corrected = ref ? correctOctave(raw, ref) : raw;
+        smoothedPitch = smoothedPitch === 0 ? corrected : smoothedPitch * 0.65 + corrected * 0.35;
+        pitchHistory.push({ t: ts, pitch: smoothedPitch });
+        while (pitchHistory.length && pitchHistory[0].t < cut) pitchHistory.shift();
+
+        if (state.phase === 'calibrating') {
+          state.calibration.samples.push(smoothedPitch);
+        }
+      }
+      if (state.phase === 'calibrating') updateCalibrationUI(ts);
+      if (state.phase === 'capturing') updateSpeakerBaseline(ts);
+      if (state.phase === 'capturing' && state.mode === 'practice' && smoothedPitch) {
+        tickPractice(ts, smoothedPitch);
+      }
+      updateLiveUI();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function computeRMSFromBuffer(b) {
+    let sum = 0;
+    for (let i = 0; i < b.length; i++) sum += b[i] * b[i];
+    return Math.sqrt(sum / b.length);
+  }
+
+  function getRecentMedianRMS(windowMs = 1000) {
+    const now = performance.now();
+    const cutoff = now - windowMs;
+    const recent = rmsHistory.filter((s) => s.t >= cutoff).map((s) => s.rms);
+    if (!recent.length) return smoothedRMS || 0.04;
+    recent.sort((a, b) => a - b);
+    return recent[Math.floor(recent.length / 2)];
+  }
+
+  function mapRMSToSize(rms) {
+    const clamped = Math.max(0.005, Math.min(0.25, rms));
+    const minLog = Math.log(0.005);
+    const maxLog = Math.log(0.25);
+    const t = (Math.log(clamped) - minLog) / (maxLog - minLog);
+    return 0.55 + t * 1.1; // 0.55x → 1.65x
+  }
+
+  function getRefPitch() {
+    if (pitchHistory.length < 5) return 0;
+    const recent = pitchHistory.slice(-25);
+    const sorted = recent.map((s) => s.pitch).sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+
+  function correctOctave(p, ref) {
+    if (!ref) return p;
+    if (Math.abs(p / 2 - ref) / ref < 0.12) return p / 2;
+    if (Math.abs(p * 2 - ref) / ref < 0.12) return p * 2;
+    return p;
+  }
+
+  function getRecentMedianPitch(windowMs = 1200) {
+    const now = performance.now();
+    const cutoff = now - windowMs;
+    const recent = pitchHistory.filter((s) => s.t >= cutoff).map((s) => s.pitch);
+    if (!recent.length) return smoothedPitch || 220;
+    recent.sort((a, b) => a - b);
+    return recent[Math.floor(recent.length / 2)];
+  }
+
+  // ACF2+ pitch detection.
+  function autoCorrelate(buf, sampleRate) {
+    let SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.01) return -1;
+
+    let r1 = 0, r2 = SIZE - 1;
+    const thres = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) {
+      if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+    }
+    for (let i = 1; i < SIZE / 2; i++) {
+      if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+    }
+
+    const trimmed = buf.slice(r1, r2);
+    SIZE = trimmed.length;
+
+    const c = new Array(SIZE).fill(0);
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE - i; j++) {
+        c[i] += trimmed[j] * trimmed[j + i];
+      }
+    }
+
+    let d = 0;
+    while (d + 1 < SIZE && c[d] > c[d + 1]) d++;
+
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < SIZE; i++) {
+      if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+    }
+    if (maxpos <= 0 || maxpos >= SIZE - 1) return -1;
+
+    let T0 = maxpos;
+    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) T0 = T0 - b / (2 * a);
+
+    return sampleRate / T0;
+  }
+
+  /* ─────────── LETTER PITCH SAMPLING (for sub-word morph) ─────────── */
+
+  // Estimates a per-letter pitch trajectory by sampling pitchHistory across
+  // the (approximate) time window during which the word was spoken.
+  function computeLetterPitches(word) {
+    const N = word.length;
+    if (N === 0) return [];
+    const now = performance.now();
+    const durMs = Math.max(300, Math.min(1200, 110 * N));
+    const startT = now - durMs;
+    const result = [];
+    for (let i = 0; i < N; i++) {
+      const t = startT + ((i + 0.5) / N) * durMs;
+      result.push({ letter: word[i], pitch: findClosestPitchSample(t) });
+    }
+    return result;
+  }
+
+  function findClosestPitchSample(targetTime) {
+    if (!pitchHistory.length) return smoothedPitch || 220;
+    let best = pitchHistory[0];
+    let bestDist = Math.abs(best.t - targetTime);
+    for (let i = 1; i < pitchHistory.length; i++) {
+      const d = Math.abs(pitchHistory[i].t - targetTime);
+      if (d < bestDist) { best = pitchHistory[i]; bestDist = d; }
+    }
+    return best.pitch;
+  }
+
+  function shouldMorph(letterData) {
+    const alphaData = letterData.filter((d) => /[a-zA-Z]/.test(d.letter));
+    if (alphaData.length < 3) return false;
+    const buckets = new Set(alphaData.map((d) => bucketFor(d.pitch).name));
+    return buckets.size >= 2;
+  }
+
+  /* ─────────── CALIBRATION ─────────── */
+
+  function startCalibration() {
+    state.phase = 'calibrating';
+    state.calibration.samples = [];
+    state.calibration.pMin = null;
+    state.calibration.pMax = null;
+    state.calibration.startedAt = performance.now();
+    els.main.classList.add('calibrating');
+    els.calibFill.style.width = '0%';
+    els.calibFoot.textContent = 'Calibrating · 0.0s / 8.0s';
+    setStatus('calibrating', true);
+
+    if (state.mode === 'reading' && state.passage) {
+      els.calibLabel.textContent = `Warming up · then ${state.passage.source} — ${state.passage.title}`;
+      els.calibHint.textContent = 'Talk for a few seconds — anything at all. After this the page switches into reading mode.';
+    } else {
+      els.calibLabel.textContent = 'Warming the type case';
+      els.calibHint.textContent = 'Talk naturally for a few seconds — anything at all. Tonotype is learning the shape of your voice.';
+    }
+  }
+
+  function updateCalibrationUI(ts) {
+    const elapsed = ts - state.calibration.startedAt;
+    const pct = Math.min(100, (elapsed / CALIBRATION_MS) * 100);
+    els.calibFill.style.width = pct + '%';
+    els.calibFoot.textContent = `Calibrating · ${(elapsed / 1000).toFixed(1)}s / 8.0s`;
+    if (elapsed >= CALIBRATION_MS) finishCalibration();
+  }
+
+  function finishCalibration() {
+    const samples = state.calibration.samples.slice().sort((a, b) => a - b);
+    if (samples.length >= 30) {
+      const p5 = samples[Math.floor(samples.length * 0.05)];
+      const p95 = samples[Math.floor(samples.length * 0.95)];
+      let lo = p5, hi = p95;
+      if (Math.log(hi) - Math.log(lo) < 0.3) {
+        const mid = (Math.log(hi) + Math.log(lo)) / 2;
+        lo = Math.exp(mid - 0.4);
+        hi = Math.exp(mid + 0.4);
+      }
+      const lspan = Math.log(hi) - Math.log(lo);
+      lo = Math.exp(Math.log(lo) - lspan * 0.08);
+      hi = Math.exp(Math.log(hi) + lspan * 0.08);
+      state.calibration.pMin = Math.max(MIN_HZ, lo);
+      state.calibration.pMax = Math.min(MAX_HZ, hi);
+    }
+    state.phase = 'capturing';
+    els.main.classList.remove('calibrating');
+    rebuildScale();
+    saveFingerprint();
+    setStatus(state.mode === 'practice' ? 'practice' : 'listening', true);
+
+    if (state.mode === 'reading') {
+      renderPassage();
+    }
+    if (state.mode === 'practice') {
+      showTargetBand(state.practice.targetMin, state.practice.targetMax);
+      els.status.classList.add('practice-active');
+    }
+  }
+
+  /* ─────────── READING MODE ─────────── */
+
+  function startReading(passageId) {
+    const def = PASSAGES.find((p) => p.id === passageId);
+    if (!def) return;
+    const tokens = def.text.split(/\s+/).filter(Boolean);
+    state.passage = {
+      source: def.source,
+      title: def.title,
+      slots: tokens.map((t) => ({
+        word: t,
+        clean: cleanForMatch(t),
+        matched: false,
+        skipped: false,
+        pitch: null,
+        font: null,
+        bucket: null,
+        el: null,
+        capEl: null,
+      })),
+      cursor: 0,
+    };
+  }
+
+  function renderPassage() {
+    if (!state.passage) return;
+    els.main.classList.add('reading-mode');
+    els.readingHeader.innerHTML =
+      `<span class="rh-source">${state.passage.source}</span>` +
+      `<span class="rh-title">${state.passage.title}</span>` +
+      `<span class="rh-progress" id="rhProgress">0 / ${state.passage.slots.length}</span>`;
+    els.rPassage.innerHTML = '';
+    state.passage.slots.forEach((slot, i) => {
+      const sl = document.createElement('span');
+      sl.className = 'r-slot pending';
+      sl.dataset.i = i;
+
+      const w = document.createElement('span');
+      w.className = 'r-word';
+      w.textContent = slot.word;
+
+      const cap = document.createElement('span');
+      cap.className = 'r-cap';
+
+      sl.appendChild(w);
+      sl.appendChild(cap);
+      els.rPassage.appendChild(sl);
+
+      slot.el = sl;
+      slot.capEl = cap;
+    });
+  }
+
+  function transformSlot(slot, pitch) {
+    slot.matched = true;
+    slot.pitch = pitch;
+    const wEl = slot.el.querySelector('.r-word');
+
+    // Loudness → size
+    const rms = getRecentMedianRMS();
+    wEl.style.setProperty('--size', mapRMSToSize(rms).toFixed(3));
+
+    // Sub-word morph
+    const letterData = computeLetterPitches(slot.word);
+    const willMorph = shouldMorph(letterData);
+
+    if (willMorph) {
+      wEl.textContent = '';
+      letterData.forEach((data) => {
+        const isAlpha = /[a-zA-Z]/.test(data.letter);
+        if (isAlpha) {
+          data.bucket = bucketFor(data.pitch);
+          data.font = pickFont(data.bucket);
+        }
+        const letter = document.createElement('span');
+        letter.className = 'letter';
+        const cls = classifyLetter(data.letter);
+        if (cls) letter.classList.add(cls);
+        letter.textContent = data.letter;
+        if (isAlpha) {
+          letter.style.fontFamily = `'${data.font.family}', serif`;
+          letter.style.fontWeight = data.font.weight;
+          letter.style.fontStyle = data.font.style;
+        }
+        wEl.appendChild(letter);
+      });
+      // Save for poster export
+      const alpha = letterData.filter((d) => d.bucket);
+      slot.bucket = alpha[0]?.bucket || bucketFor(pitch);
+      slot.font = alpha[0]?.font || pickFont(slot.bucket);
+      slot.morph = true;
+      slot.letterData = letterData;
+    } else {
+      const bucket = bucketFor(pitch);
+      const font = pickFont(bucket);
+      slot.bucket = bucket;
+      slot.font = font;
+      slot.morph = false;
+      wEl.style.fontFamily = `'${font.family}', serif`;
+      wEl.style.fontWeight = font.weight;
+      wEl.style.fontStyle = font.style;
+    }
+
+    slot.el.classList.remove('pending');
+    slot.el.classList.add('matched');
+    if (state.speakers.detectedTwo && state.speakers.current === 'b') {
+      slot.el.classList.add('speaker-b');
+    }
+
+    if (slot.morph) {
+      const alpha = letterData.filter((d) => d.bucket);
+      const uniqBuckets = [...new Set(alpha.map((d) => d.bucket.label))];
+      const ps = alpha.map((d) => d.pitch);
+      const minP = Math.min(...ps);
+      const maxP = Math.max(...ps);
+      slot.capEl.innerHTML =
+        `<span class="b">MORPH</span>` +
+        `<span class="fname">${uniqBuckets.join(' → ')}</span>` +
+        ` · ${Math.round(minP)}→${Math.round(maxP)} Hz`;
+    } else {
+      slot.capEl.innerHTML =
+        `<span class="b">${slot.bucket.label}</span>` +
+        `<span class="fname">${slot.font.family}${slot.font.style === 'italic' ? ' Italic' : ''}</span>` +
+        ` · ${Math.round(pitch)} Hz`;
+    }
+
+    updateReadingProgress();
+    slot.el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }
+
+  function markSkipped(slot) {
+    slot.skipped = true;
+    slot.el.classList.remove('pending');
+    slot.el.classList.add('skipped');
+  }
+
+  function updateReadingProgress() {
+    if (!state.passage) return;
+    const matched = state.passage.slots.filter((s) => s.matched).length;
+    const total = state.passage.slots.length;
+    const el = document.getElementById('rhProgress');
+    if (el) el.textContent = `${matched} / ${total}`;
+  }
+
+  function cleanForMatch(s) {
+    return s.toLowerCase().replace(/[^a-z']/g, '');
+  }
+
+  function maxLevDist(len) {
+    if (len <= 2) return 0;
+    if (len <= 5) return 1;
+    return 2;
+  }
+
+  function levenshtein(a, b) {
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    const m = a.length, n = b.length;
+    const dp = new Array(n + 1);
+    for (let j = 0; j <= n; j++) dp[j] = j;
+    for (let i = 1; i <= m; i++) {
+      let prev = dp[0];
+      dp[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const tmp = dp[j];
+        if (a.charCodeAt(i - 1) === b.charCodeAt(j - 1)) {
+          dp[j] = prev;
+        } else {
+          dp[j] = 1 + Math.min(prev, dp[j - 1], dp[j]);
+        }
+        prev = tmp;
+      }
+    }
+    return dp[n];
+  }
+
+  function tryMatchPassageWord(spoken, pitch) {
+    if (!state.passage) return false;
+    const cleanS = cleanForMatch(spoken);
+    if (!cleanS) return false;
+    const LOOKAHEAD = 3;
+
+    for (let off = 0; off < LOOKAHEAD; off++) {
+      const idx = state.passage.cursor + off;
+      if (idx >= state.passage.slots.length) break;
+      const slot = state.passage.slots[idx];
+      if (slot.matched || slot.skipped) continue;
+      const cleanW = slot.clean;
+      if (!cleanW.length) {
+        state.passage.cursor = idx + 1;
+        continue;
+      }
+      if (levenshtein(cleanS, cleanW) <= maxLevDist(cleanW.length)) {
+        for (let j = state.passage.cursor; j < idx; j++) {
+          const s = state.passage.slots[j];
+          if (!s.matched && !s.skipped) markSkipped(s);
+        }
+        transformSlot(slot, pitch);
+        state.passage.cursor = idx + 1;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* ─────────── CUSTOM PASSAGE MODAL ─────────── */
+
+  function openCustomModal() {
+    if (state.listening) return; // can't open while a session is active
+    els.customOverlay.classList.add('open');
+    setTimeout(() => els.customText.focus(), 60);
+  }
+
+  function closeCustomModal() {
+    els.customOverlay.classList.remove('open');
+    els.customErr.classList.remove('show');
+  }
+
+  function submitCustomText() {
+    const text = els.customText.value.trim();
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < 3) {
+      els.customErr.classList.add('show');
+      els.customText.focus();
+      return;
+    }
+    // Build state.passage directly (skipping PASSAGES lookup)
+    state.passage = {
+      source: 'Custom',
+      title: 'Your text',
+      slots: words.map((w) => ({
+        word: w,
+        clean: cleanForMatch(w),
+        matched: false,
+        skipped: false,
+        pitch: null,
+        font: null,
+        bucket: null,
+        el: null,
+        capEl: null,
+      })),
+      cursor: 0,
+    };
+    closeCustomModal();
+    startSession('reading'); // no passageId — uses state.passage as-is
+  }
+
+  /* ─────────── SPEECH RECOGNITION ─────────── */
+
+  let recognition = null;
+  const interimPitch = new Map();
+
+  function startSpeech() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      setStatus('speech api not supported — try chrome', false);
+      return;
+    }
+    recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (evt) => {
+      if (state.phase !== 'capturing') return;
+      for (let i = evt.resultIndex; i < evt.results.length; i++) {
+        const r = evt.results[i];
+        const text = r[0].transcript.trim();
+        if (!text) continue;
+        const words = text.split(/\s+/);
+        if (!r.isFinal) {
+          words.forEach((_, idx) => {
+            const key = `${i}-${idx}`;
+            if (!interimPitch.has(key)) {
+              interimPitch.set(key, getRecentMedianPitch(700));
+            }
+          });
+        } else {
+          words.forEach((w, idx) => {
+            const key = `${i}-${idx}`;
+            const pitch = interimPitch.get(key) ?? getRecentMedianPitch(1500);
+            interimPitch.delete(key);
+            commitWord(w, pitch);
+          });
+        }
+      }
+    };
+
+    recognition.onend = () => {
+      if (state.listening) {
+        try { recognition.start(); } catch (e) {}
+      }
+    };
+    recognition.onerror = (e) => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        setStatus('mic blocked', false);
+        state.listening = false;
+      } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
+        console.warn('speech error', e.error);
+      }
+    };
+    try { recognition.start(); } catch (e) {}
+  }
+
+  /* ─────────── COMMIT ─────────── */
+
+  function commitWord(rawWord, pitch) {
+    if (state.mode === 'reading') {
+      tryMatchPassageWord(rawWord, pitch);
+    } else if (state.mode === 'variable') {
+      renderVariableWord(rawWord, pitch);
+    } else {
+      renderFreeWord(rawWord, pitch);
+    }
+  }
+
+  function renderFreeWord(rawWord, pitch) {
+    const word = rawWord.replace(/[\.,!?;:]+$/, '');
+    if (!word) return;
+
+    const letterData = computeLetterPitches(word);
+    const willMorph = shouldMorph(letterData);
+
+    state.count++;
+    els.main.classList.add('has-words');
+    els.count.textContent = String(state.count).padStart(3, '0');
+
+    const block = document.createElement('div');
+    block.className = 'word-block' + (state.speakers.detectedTwo && state.speakers.current === 'b' ? ' speaker-b' : '');
+
+    const num = document.createElement('span');
+    num.className = 'word-index';
+    num.textContent = 'N° ' + String(state.count).padStart(3, '0');
+    block.appendChild(num);
+
+    const w = document.createElement('span');
+    w.className = 'word-text';
+
+    // Loudness → size
+    const rms = getRecentMedianRMS();
+    w.style.setProperty('--size', mapRMSToSize(rms).toFixed(3));
+
+    let primaryBucket, primaryFont;
+    if (willMorph) {
+      letterData.forEach((data) => {
+        const isAlpha = /[a-zA-Z]/.test(data.letter);
+        if (isAlpha) {
+          data.bucket = bucketFor(data.pitch);
+          data.font = pickFont(data.bucket);
+        }
+        const letter = document.createElement('span');
+        letter.className = 'letter';
+        const cls = classifyLetter(data.letter);
+        if (cls) letter.classList.add(cls);
+        letter.textContent = data.letter;
+        if (isAlpha) {
+          letter.style.fontFamily = `'${data.font.family}', serif`;
+          letter.style.fontWeight = data.font.weight;
+          letter.style.fontStyle = data.font.style;
+        }
+        w.appendChild(letter);
+      });
+      const alpha = letterData.filter((d) => d.bucket);
+      primaryBucket = alpha[0]?.bucket;
+      primaryFont = alpha[0]?.font;
+    } else {
+      primaryBucket = bucketFor(pitch);
+      primaryFont = pickFont(primaryBucket);
+      w.textContent = word;
+      w.style.fontFamily = `'${primaryFont.family}', serif`;
+      w.style.fontWeight = primaryFont.weight;
+      w.style.fontStyle = primaryFont.style;
+    }
+    block.appendChild(w);
+
+    const meta = document.createElement('span');
+    meta.className = 'word-meta';
+    if (willMorph) {
+      const alpha = letterData.filter((d) => d.bucket);
+      const uniqBuckets = [...new Set(alpha.map((d) => d.bucket.label))];
+      const ps = alpha.map((d) => d.pitch);
+      const minP = Math.min(...ps);
+      const maxP = Math.max(...ps);
+      meta.innerHTML =
+        `<span class="bucket-tag morph">MORPH</span>` +
+        `<span class="font-name">${uniqBuckets.join(' → ')}</span>` +
+        ` · ${Math.round(minP)}→${Math.round(maxP)} Hz`;
+    } else {
+      meta.innerHTML =
+        `<span class="bucket-tag">${primaryBucket.label}</span>` +
+        `<span class="font-name">${primaryFont.family}${primaryFont.style === 'italic' ? ' Italic' : ''}</span>` +
+        ` · ${Math.round(pitch)} Hz`;
+    }
+    block.appendChild(meta);
+
+    els.specimen.appendChild(block);
+    block.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+  }
+
+  /* ─────────── VARIABLE MODE (Fraunces, 4 axes) ─────────── */
+
+  // Pitch (Hz) → opsz (9 → 144).
+  // Low pitch lands in display-size (massive contrast, big-letter design).
+  // High pitch lands in caption-size (more open, less contrast).
+  // Inverse-log: low pitch = high opsz.
+  function mapPitchToOpsz(pitch) {
+    const { min, max } = getActiveRange();
+    const minL = Math.log(min);
+    const maxL = Math.log(max);
+    const clamped = Math.max(min, Math.min(max, pitch));
+    const t = (Math.log(clamped) - minL) / (maxL - minL);
+    return 144 - t * 135; // 144 (display) → 9 (caption)
+  }
+
+  // RMS → wght (200 → 900).
+  function mapRMSToWght(rms) {
+    const clamped = Math.max(0.005, Math.min(0.25, rms));
+    const minL = Math.log(0.005);
+    const maxL = Math.log(0.25);
+    const t = (Math.log(clamped) - minL) / (maxL - minL);
+    return 200 + t * 700;
+  }
+
+  // Within-word pitch variance (coefficient of variation) → SOFT (0 → 100).
+  // Monotone delivery stays sharp; wavering voice softens the edges.
+  function mapVarianceToSOFT(letterPitches) {
+    const ps = letterPitches.filter((d) => /[a-zA-Z]/.test(d.letter)).map((d) => d.pitch);
+    if (ps.length < 3) return 0;
+    const mean = ps.reduce((a, b) => a + b, 0) / ps.length;
+    if (!mean) return 0;
+    const variance = ps.reduce((a, b) => a + (b - mean) ** 2, 0) / ps.length;
+    const cv = Math.sqrt(variance) / mean;
+    return Math.min(100, cv * 350);
+  }
+
+  // Direction-change count → WONK (0 → 1).
+  // Smooth pitch contour stays prim; oscillating delivery goes wonky.
+  function mapWobbleToWONK(letterPitches) {
+    const ps = letterPitches.filter((d) => /[a-zA-Z]/.test(d.letter)).map((d) => d.pitch);
+    if (ps.length < 4) return 0;
+    let changes = 0;
+    for (let i = 2; i < ps.length; i++) {
+      const d1 = ps[i - 1] - ps[i - 2];
+      const d2 = ps[i] - ps[i - 1];
+      if (Math.sign(d1) !== Math.sign(d2) && Math.abs(d1) > 4 && Math.abs(d2) > 4) {
+        changes++;
+      }
+    }
+    return Math.min(1, changes / 3);
+  }
+
+  function renderVariableWord(rawWord, pitch) {
+    const word = rawWord.replace(/[\.,!?;:]+$/, '');
+    if (!word) return;
+
+    const rms = getRecentMedianRMS();
+    const letterPitches = computeLetterPitches(word);
+
+    const opsz = mapPitchToOpsz(pitch);
+    const wght = mapRMSToWght(rms);
+    const soft = mapVarianceToSOFT(letterPitches);
+    const wonk = mapWobbleToWONK(letterPitches);
+
+    state.count++;
+    els.main.classList.add('has-words');
+    els.count.textContent = String(state.count).padStart(3, '0');
+
+    const block = document.createElement('div');
+    block.className = 'word-block' + (state.speakers.detectedTwo && state.speakers.current === 'b' ? ' speaker-b' : '');
+
+    const num = document.createElement('span');
+    num.className = 'word-index';
+    num.textContent = 'N° ' + String(state.count).padStart(3, '0');
+    block.appendChild(num);
+
+    const w = document.createElement('span');
+    w.className = 'word-text variable';
+    w.textContent = word;
+    // wght is set via the standard font-weight property so canvas-based
+    // poster export resolves it correctly (getComputedStyle returns wght).
+    // opsz/SOFT/WONK go through font-variation-settings (canvas drops these).
+    w.style.fontWeight = Math.round(wght);
+    w.style.fontVariationSettings =
+      `"opsz" ${opsz.toFixed(1)}, "SOFT" ${soft.toFixed(0)}, "WONK" ${wonk.toFixed(2)}`;
+    block.appendChild(w);
+
+    const meta = document.createElement('span');
+    meta.className = 'word-meta';
+    meta.innerHTML =
+      `<span class="bucket-tag">FRAUNCES</span>` +
+      `<span class="axis-readout">` +
+        `<span class="axis-key">wght</span>${wght.toFixed(0)}` +
+        `<span class="axis-sep">·</span>` +
+        `<span class="axis-key">opsz</span>${opsz.toFixed(0)}` +
+        `<span class="axis-sep">·</span>` +
+        `<span class="axis-key">SOFT</span>${soft.toFixed(0)}` +
+        `<span class="axis-sep">·</span>` +
+        `<span class="axis-key">WONK</span>${wonk.toFixed(2)}` +
+      `</span>` +
+      `<span class="axis-sep">·</span>` +
+      `${Math.round(pitch)} Hz`;
+    block.appendChild(meta);
+
+    els.specimen.appendChild(block);
+    block.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+  }
+
+  /* ─────────── LIVE UI ─────────── */
+
+  function setStatus(text, isLive) {
+    els.status.textContent = text;
+    els.status.classList.toggle('live', !!isLive);
+    els.dot.classList.toggle('live', !!isLive);
+  }
+
+  let prevActiveBucket = null;
+  function updateLiveUI() {
+    if (!smoothedPitch) return;
+    const p = Math.round(smoothedPitch);
+    const b = bucketFor(smoothedPitch);
+    els.livePitch.textContent = p + ' Hz';
+    els.liveBucket.textContent = b.label;
+    els.marker.style.left = pctOnScale(smoothedPitch) + '%';
+    els.marker.style.opacity = 1;
+
+    if (prevActiveBucket !== b.name) {
+      els.bucketsEl.querySelectorAll('.scale-bucket').forEach((c) => {
+        c.classList.toggle('active', c.dataset.bucket === b.name);
+      });
+      prevActiveBucket = b.name;
+    }
+  }
+
+  /* ─────────── SESSION FLOW ─────────── */
+
+  async function startSession(mode, passageId) {
+    if (state.listening) return;
+    // Release the live demo's mic before opening a session-grade stream.
+    if (liveDemoActive) deactivateLiveDemo();
+    state.mode = mode;
+    if (mode === 'reading' && passageId) {
+      startReading(passageId);
+    }
+    // if mode='reading' and no passageId → state.passage must already be set (custom case)
+
+    state.listening = true;
+    els.startBtn.disabled = true;
+    els.startBtn.textContent = 'Connecting…';
+    setStatus('connecting', false);
+    state.phase = 'connecting';
+    els.main.classList.add('listening');
+
+    try {
+      await startAudio();
+      startSpeech();
+      // If we already have a calibrated fingerprint, skip the 8s calibration.
+      if (state.calibration.pMin && state.calibration.pMax) {
+        setTimeout(() => {
+          state.phase = 'capturing';
+          rebuildScale();
+          setStatus(state.mode === 'practice' ? 'practice' : 'listening', true);
+          if (state.mode === 'reading') renderPassage();
+          if (state.mode === 'practice') {
+            showTargetBand(state.practice.targetMin, state.practice.targetMax);
+            els.status.classList.add('practice-active');
+          }
+        }, 350);
+      } else {
+        setTimeout(startCalibration, 350);
+      }
+    } catch (e) {
+      console.error(e);
+      setStatus('mic blocked — refresh and allow', false);
+      state.listening = false;
+      state.phase = 'idle';
+      els.startBtn.disabled = false;
+      els.startBtn.textContent = 'Start listening';
+      els.main.classList.remove('listening');
+    }
+  }
+
+  /* ─────────── POSTER EXPORT (canvas → PNG) ─────────── */
+
+  async function exportPoster() {
+    await document.fonts.ready;
+
+    const wordEls = [];
+    document.querySelectorAll('.specimen .word-block').forEach((b) => {
+      const text = b.querySelector('.word-text');
+      const meta = b.querySelector('.word-meta');
+      if (text && meta) wordEls.push({ text, meta });
+    });
+    document.querySelectorAll('.r-passage .r-slot.matched').forEach((s) => {
+      const text = s.querySelector('.r-word');
+      const meta = s.querySelector('.r-cap');
+      if (text && meta) wordEls.push({ text, meta });
+    });
+
+    if (!wordEls.length) {
+      const orig = els.exportBtn.textContent;
+      els.exportBtn.textContent = 'Speak something first';
+      setTimeout(() => { els.exportBtn.textContent = orig; }, 1600);
+      return;
+    }
+
+    const W = 1200;
+    const H = 1600;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'alphabetic';
+    ctx.imageSmoothingEnabled = true;
+
+    // Paper
+    ctx.fillStyle = '#efe9de';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle grain via random dots
+    ctx.fillStyle = 'rgba(26, 24, 21, 0.035)';
+    for (let i = 0; i < 1800; i++) {
+      const x = Math.random() * W;
+      const y = Math.random() * H;
+      ctx.fillRect(x, y, 1, 1);
+    }
+
+    const margin = 80;
+    let y = margin + 28;
+
+    // Header
+    ctx.fillStyle = '#1a1815';
+    ctx.font = '700 16px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('TONOTYPE', margin, y);
+
+    const date = new Date();
+    const dateStr = date.toLocaleDateString('en-CA');
+    ctx.fillStyle = '#8a8278';
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText(`SPECIMEN N° ${String(state.count || wordEls.length).padStart(3, '0')} · ${dateStr.toUpperCase()}`, margin, y + 22);
+
+    y += 56;
+    ctx.fillStyle = 'rgba(26, 24, 21, 0.22)';
+    ctx.fillRect(margin, y, W - 2 * margin, 1);
+    y += 60;
+
+    const wordSize = 92;
+
+    let printed = 0;
+    for (const { text: textEl, meta: metaEl } of wordEls) {
+      const word = textEl.textContent;
+      const letters = textEl.querySelectorAll('.letter');
+
+      ctx.fillStyle = '#1a1815';
+      let consumedWidth = 0;
+
+      if (letters.length > 0) {
+        let xCursor = margin;
+        letters.forEach((letterEl) => {
+          const lcs = window.getComputedStyle(letterEl);
+          ctx.font = `${lcs.fontStyle} ${lcs.fontWeight} ${wordSize}px ${lcs.fontFamily}`;
+          const ch = letterEl.textContent;
+          ctx.fillText(ch, xCursor, y);
+          xCursor += ctx.measureText(ch).width;
+        });
+        consumedWidth = xCursor - margin;
+      } else {
+        const cs = window.getComputedStyle(textEl);
+        ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${wordSize}px ${cs.fontFamily}`;
+        ctx.fillText(word, margin, y);
+        consumedWidth = ctx.measureText(word).width;
+      }
+
+      y += 16;
+      ctx.fillStyle = 'rgba(26, 24, 21, 0.12)';
+      ctx.fillRect(margin, y, Math.min(consumedWidth + 24, W - 2 * margin), 1);
+      y += 18;
+
+      ctx.fillStyle = '#8a8278';
+      ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+      const metaText = (metaEl.textContent || '').trim().toUpperCase();
+      ctx.fillText(metaText, margin, y);
+
+      y += 92;
+      printed++;
+
+      if (y > H - 180) {
+        const remaining = wordEls.length - printed;
+        if (remaining > 0) {
+          ctx.font = 'italic 22px "Instrument Serif", Georgia, serif';
+          ctx.fillStyle = '#8a8278';
+          ctx.fillText(`+ ${remaining} more`, margin, y);
+        }
+        break;
+      }
+    }
+
+    // Footer
+    const footY = H - 80;
+    ctx.fillStyle = 'rgba(26, 24, 21, 0.22)';
+    ctx.fillRect(margin, footY, W - 2 * margin, 1);
+
+    ctx.fillStyle = '#8a8278';
+    ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    ctx.fillText('VOICE → TYPE SPECIMEN', margin, footY + 34);
+    ctx.textAlign = 'right';
+    ctx.fillText('TONOTYPE', W - margin, footY + 34);
+    ctx.textAlign = 'left';
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tonotype-${dateStr}-${String(printed).padStart(3, '0')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, 'image/png');
+  }
+
+  /* ─────────── BUTTONS ─────────── */
+
+  els.startBtn.addEventListener('click', () => startSession('free'));
+  els.startVariableBtn.addEventListener('click', () => startSession('variable'));
+  els.liveDemoTrigger.addEventListener('click', activateLiveDemo);
+
+  els.clearBtn.addEventListener('click', () => {
+    els.specimen.innerHTML = '';
+    state.count = 0;
+    els.count.textContent = '000';
+    els.main.classList.remove('has-words');
+    interimPitch.clear();
+
+    if (state.mode === 'reading' && state.passage) {
+      state.passage.slots.forEach((slot) => {
+        slot.matched = false;
+        slot.skipped = false;
+        slot.pitch = null;
+        slot.morph = false;
+        slot.letterData = null;
+        if (slot.el) {
+          slot.el.classList.remove('matched', 'skipped');
+          slot.el.classList.add('pending');
+          const wEl = slot.el.querySelector('.r-word');
+          if (wEl) {
+            wEl.style.fontFamily = '';
+            wEl.style.fontWeight = '';
+            wEl.style.fontStyle = '';
+            wEl.style.removeProperty('--size');
+            wEl.textContent = slot.word;
+          }
+        }
+        if (slot.capEl) slot.capEl.innerHTML = '';
+      });
+      state.passage.cursor = 0;
+      updateReadingProgress();
+    }
+  });
+
+  els.exportBtn.addEventListener('click', exportPoster);
+
+  els.stageBtn.addEventListener('click', enterStageMode);
+  els.stageExit.addEventListener('click', exitStageMode);
+
+  els.shareBtn.addEventListener('click', shareSpecimen);
+
+  els.rbForget.addEventListener('click', forgetFingerprint);
+
+  // Practice mode buttons
+  els.startPracticeBtn.addEventListener('click', openPracticeSetup);
+  els.psCancel.addEventListener('click', closePracticeSetup);
+  els.psGo.addEventListener('click', startPracticeSession);
+  els.psOverlay.addEventListener('click', (e) => {
+    if (e.target === els.psOverlay) closePracticeSetup();
+  });
+  els.prDone.addEventListener('click', () => {
+    els.prOverlay.classList.remove('open');
+  });
+  els.prAgain.addEventListener('click', () => {
+    els.prOverlay.classList.remove('open');
+    // Clear specimen + reload page to a clean state, then reopen setup
+    els.specimen.innerHTML = '';
+    state.count = 0;
+    els.count.textContent = '000';
+    openPracticeSetup();
+  });
+  els.historyBtn.addEventListener('click', openHistory);
+  els.histClose.addEventListener('click', closeHistory);
+  els.histOverlay.addEventListener('click', (e) => {
+    if (e.target === els.histOverlay) closeHistory();
+  });
+  els.histClear.addEventListener('click', () => {
+    if (confirm('Forget all practice session history? This cannot be undone.')) {
+      clearHistory();
+    }
+  });
+
+  document.addEventListener('mousemove', () => {
+    if (document.body.classList.contains('stage-mode')) resetMouseTimer();
+  });
+
+  els.customCancel.addEventListener('click', closeCustomModal);
+  els.customGo.addEventListener('click', submitCustomText);
+  els.customOverlay.addEventListener('click', (e) => {
+    if (e.target === els.customOverlay) closeCustomModal();
+  });
+  els.customText.addEventListener('input', () => {
+    els.customErr.classList.remove('show');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (els.customOverlay.classList.contains('open')) {
+        closeCustomModal();
+      } else if (els.psOverlay.classList.contains('open')) {
+        closePracticeSetup();
+      } else if (els.histOverlay.classList.contains('open')) {
+        closeHistory();
+      } else if (els.prOverlay.classList.contains('open')) {
+        els.prOverlay.classList.remove('open');
+      } else if (document.body.classList.contains('stage-mode')) {
+        exitStageMode();
+      }
+    }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && els.customOverlay.classList.contains('open')) {
+      submitCustomText();
+    }
+  });
+
+  /* ─────────── BOOT ─────────── */
+
+  preloadFonts();
+  buildPassageCards();
+  buildLanguagePicker();
+  buildPresetGrid();
+  buildDurationRow();
+
+  // Restore voice fingerprint from localStorage if present and fresh.
+  const fp = loadFingerprint();
+  if (fp && fp.pMin && fp.pMax) {
+    state.calibration.pMin = fp.pMin;
+    state.calibration.pMax = fp.pMax;
+    if (fp.lang) {
+      const preset = LANGUAGE_PRESETS.find((p) => p.id === fp.lang);
+      if (preset) state.language = preset;
+    }
+    showReturningBanner(fp);
+  }
+
+  rebuildScale();
+  // After rebuildScale ran, sync the active language pill.
+  els.langOptions.querySelectorAll('.lang-option').forEach((b) => {
+    b.classList.toggle('active', b.dataset.lang === state.language.id);
+  });
+
+  // If URL hash carries a shared specimen, render it directly.
+  tryRestoreFromHash();
+})();
+</script>
+</body>
+</html>
