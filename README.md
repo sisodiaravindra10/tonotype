@@ -4,6 +4,8 @@
 
 Low rumbles land in heavy display type. Mid registers in editorial serifs. High notes in flowing scripts. Read something aloud — with feeling — and watch your voice become a typeface.
 
+**Try it live: [tonotype.vercel.app](https://tonotype.vercel.app/)** — Chrome or Edge, allow the microphone, speak.
+
 ---
 
 ## What it does
