@@ -1027,3 +1027,64 @@ Three steps between hairlines: `01 Allow the microphone · 02 Speak, or read a p
 - ❌ No per-letter morphing in Indic scripts (breaks shaping). Fail-closed is the feature.
 - ❌ No speculative pitch envelopes per language. Uniform until measured.
 - ❌ The spectrum strip never animates. It is a diagram; the live demo word above it is the animation.
+
+---
+
+## 19. v0.9 — Distilled Landing, Session-Gated Chrome, Load Choreography
+
+An `/impeccable` pass (distill → polish → animate) against the freshly-written PRODUCT.md. The landing said everything twice and showed the instrument before the invitation; v0.9 makes it say everything once, in order, with one rehearsed entrance.
+
+### What was cut (distill)
+
+| Removed | Why | Where its job went |
+|---------|-----|--------------------|
+| 3-line `Speak. / Watch your voice / become a typeface.` h1 | Competed with the live demo word for the display moment | One-line `.hero-line` statement |
+| 4-line sub paragraph | Restated what the spectrum strip shows | Spectrum strip (now load-bearing) |
+| How-it-works strip (01/02/03) | Third restatement of the mechanism | Hint line carries the mic note; strip + statement carry the rest |
+| Full-width language band | Tool chrome before the brand surface | Compact centered row inside the hero |
+| Pitch-scale band on landing | Instrument chrome before the tool engages (PRODUCT.md principle 5) | Appears on session start via `body.session-live` |
+| Dead CSS (`.hero h1`, `.hero .sub`, how-strip rules) | Orphaned by the cuts; `.hero h1` would have overridden `.hero-line` at higher specificity | Deleted |
+
+New landing order: **hello (live, `clamp(88px, 15vw, 230px)`) → tap hint → one-line statement → spectrum strip → language row → mode grid → hint**. The demo word is the unambiguous hero; everything below it is explanation, then choice.
+
+### Hero statement
+
+`.hero-line` — Instrument Serif 400, `clamp(26px, 3.4vw, 40px)`, line-height 1.2, max-width 620px, one accent-italic word (`typeface`). It is the page's only h1.
+
+### Session-gated instrument chrome
+
+`.scale { display: none }` until `body.session-live`, added in `startSession` and `restoreSpecimen`, removed in `newSession`. On reveal the band plays `scale-in` (translateY(-6px) + opacity, 0.5s ease-out-expo, one-shot). Rule order matters: the `session-live` rule sits *before* the stage-mode rules in the stylesheet, so stage mode (equal specificity, later) still hides the scale. The ended-bar state deliberately keeps the scale visible: a stopped session's specimen retains its instrument context until `New session`.
+
+### Load choreography (animate)
+
+One rehearsed entrance, pure CSS, transform + opacity only, all one-shot with `forwards` fill:
+
+| Element | Animation | Delay |
+|---------|-----------|-------|
+| Live demo word | `rv-in-hero` — rise 18px + scale 0.985→1, 850ms | 80ms |
+| Hero statement | `rv-in` — rise 14px, 700ms | 300ms |
+| Spectrum strip | `rv-in` | 440ms |
+| Arc path | `arc-draw` — stroke-dashoffset 700→0, 1s | 520ms |
+| Arc dots ×6 | `dot-in` — fade, 400ms each | 620→1020ms, 80ms apart |
+| Language row | `rv-in` | 640ms |
+| Mode cards ×4 | `rv-in` each | 740→980ms, 80ms apart |
+| Hint | `rv-in` | 1100ms |
+
+Easing is `cubic-bezier(0.16, 1, 0.3, 1)` (ease-out-expo) throughout. The whole sequence resolves in ~1.7s and never blocks interaction. Elements with their own display/opacity state machines (passage list, returning banner, ended bar) are deliberately excluded from the reveal system — `forwards` fill would fight their toggles.
+
+Because the hero is `display: none` during sessions, returning via `New session` replays the entrance. Intentional: the landing re-introduces itself.
+
+`prefers-reduced-motion`: every choreography animation is disabled (elements render settled, arc fully drawn, dots visible, scale band appears without motion).
+
+### Polish
+
+- Global `:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }`.
+- Demo word promoted to `clamp(88px, 15vw, 230px)` (it is the hero now).
+- Language pills inherit the new centered row; all ids unchanged, so the language engine needed zero JS changes.
+
+### Anti-patterns specific to v0.9
+
+- ❌ No scroll-triggered animation. The landing is one fold; everything choreographs on load.
+- ❌ No re-trigger of entrance animations on tab focus, scroll, or hover. One entrance per page load (plus the deliberate replay after New session).
+- ❌ No animation on the specimen feed beyond the existing word-rise. The choreography belongs to the chrome's first impression, not the content.
+- ❌ The reveal system never touches elements with their own visibility state machines.
