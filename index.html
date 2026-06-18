@@ -1679,7 +1679,7 @@
 <header class="topbar">
   <div class="brand">
     <span class="brand-name">TONOTYPE</span>
-    <span class="brand-version">v0.9</span>
+    <span class="brand-version">v0.9.1</span>
     <span class="brand-tag">voice <em>becomes</em> type specimen</span>
   </div>
   <div class="status" id="status">
@@ -1723,7 +1723,7 @@
     </span>
   </div>
 
-  <div class="mic-banner" id="micBanner"><strong>Microphone blocked.</strong> Click the lock icon in your address bar, allow the microphone, then reload this page.<button id="micDismiss" type="button">dismiss</button></div>
+  <div class="mic-banner" id="micBanner"><strong id="micBannerTitle">Microphone blocked.</strong> <span id="micBannerBody">Click the lock icon in your address bar, allow the microphone, then reload this page.</span><button id="micDismiss" type="button">dismiss</button></div>
 
   <div class="hero" id="hero">
     <div class="live-demo rv-hero" id="liveDemo" style="--d: 80ms">
@@ -2220,6 +2220,8 @@
     ebResume:        $('ebResume'),
     ebNew:           $('ebNew'),
     micBanner:       $('micBanner'),
+    micBannerTitle:  $('micBannerTitle'),
+    micBannerBody:   $('micBannerBody'),
     micDismiss:      $('micDismiss'),
     tips:            $('tips'),
     clearBtn:        $('clearBtn'),
@@ -3034,7 +3036,8 @@
       els.liveDemo.classList.add('active');
       runLiveDemo();
     } catch (e) {
-      els.liveDemoHint.querySelector('.ldh-key').textContent = 'mic blocked';
+      const d = diagnoseMicError(e);
+      els.liveDemoHint.querySelector('.ldh-key').textContent = d.status;
     }
   }
 
@@ -3241,6 +3244,53 @@
       newLabel: 'Start your own',
     });
     refreshActions();
+  }
+
+  /* ─────────── CAPABILITY + ERROR DIAGNOSIS ─────────── */
+
+  // What this browser can actually do. getUserMedia needs a secure context
+  // (https or localhost); Web Speech (transcription) is Chrome/Edge only.
+  function detectSupport() {
+    const secure = window.isSecureContext !== false;
+    const hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && secure;
+    const hasSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    return { secure, hasMic, hasSpeech };
+  }
+
+  // Map a getUserMedia / DOMException into an honest title + recovery line.
+  // The old code labelled every failure "mic blocked", which is wrong for
+  // missing hardware, a mic held by another app, or a dismissed prompt.
+  function diagnoseMicError(err) {
+    const name = (err && (err.name || err.error)) || '';
+    switch (name) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return {
+          status: 'mic blocked',
+          title: 'Microphone permission denied.',
+          body: 'Click the camera/lock icon in your address bar, set the microphone to Allow, then reload. If no prompt appeared, your browser may be remembering an earlier "block".',
+        };
+      case 'NotFoundError':
+      case 'OverconstrainedError':
+        return {
+          status: 'no microphone',
+          title: 'No microphone found.',
+          body: 'Connect or enable a microphone, then reload the page.',
+        };
+      case 'NotReadableError':
+      case 'AbortError':
+        return {
+          status: 'mic in use',
+          title: 'Microphone is busy.',
+          body: 'Another app or tab is using the mic. Close it (Zoom, Meet, another recorder), then reload.',
+        };
+      default:
+        return {
+          status: 'mic error',
+          title: 'Could not start the microphone.',
+          body: 'Reload the page and allow microphone access when prompted. Tonotype works best in Chrome or Edge on desktop.',
+        };
+    }
   }
 
   /* ─────────── AUDIO / PITCH ─────────── */
@@ -3796,15 +3846,30 @@
     };
     recognition.onerror = (e) => {
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        setStatus('mic blocked', false);
+        // getUserMedia already held the mic, so this is the speech *service*
+        // declining (network, region, or a browser without Web Speech), not a
+        // blocked mic. Say so accurately.
+        const speechBlocked = e.error === 'service-not-allowed';
+        setStatus(speechBlocked ? 'speech unavailable' : 'mic blocked', false);
         state.listening = false;
         state.phase = 'idle';
         teardownAudio();
         stopTips();
         els.stopBtn.classList.remove('show');
         els.main.classList.remove('listening', 'calibrating');
+        document.body.classList.remove('session-live');
         setModeBusy(false);
-        showMicBanner();
+        if (speechBlocked) {
+          showMicBanner(
+            'Speech recognition unavailable.',
+            'Word transcription needs Chrome or Edge on desktop and a network connection. Your mic works; the speech service is the blocker here.'
+          );
+        } else {
+          showMicBanner(
+            'Microphone permission denied.',
+            'Click the camera/lock icon in your address bar, set the microphone to Allow, then reload.'
+          );
+        }
       } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
         console.warn('speech error', e.error);
       }
@@ -4122,9 +4187,11 @@
     els.exportBtn.disabled = !hasWords;
   }
 
-  function showMicBanner() {
+  function showMicBanner(title, body, scroll = true) {
+    if (title) els.micBannerTitle.textContent = title;
+    if (body) els.micBannerBody.textContent = body;
     els.micBanner.classList.add('show');
-    els.micBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (scroll) els.micBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function showEndedBar(text, opts = {}) {
@@ -4225,12 +4292,14 @@
       }
     } catch (e) {
       console.error(e);
-      setStatus('mic blocked', false);
+      const d = diagnoseMicError(e);
+      setStatus(d.status, false);
       state.listening = false;
       state.phase = 'idle';
       setModeBusy(false);
       els.main.classList.remove('listening');
-      showMicBanner();
+      document.body.classList.remove('session-live');
+      showMicBanner(d.title, d.body);
     }
   }
 
@@ -4534,6 +4603,25 @@
   }
 
   applyLanguageUI();
+
+  // Capability gate: tell unsupported browsers the truth before they hit a
+  // dead end. Skipped when a shared specimen is being viewed (no mic needed).
+  if (!location.hash.startsWith('#s=')) {
+    const support = detectSupport();
+    if (!support.hasMic) {
+      showMicBanner(
+        'Microphone unavailable here.',
+        'Tonotype needs microphone access over a secure (https) connection. Open this page in Chrome or Edge on desktop.',
+        false
+      );
+    } else if (!support.hasSpeech) {
+      showMicBanner(
+        'Limited support in this browser.',
+        'The live preview above works, but turning spoken words into type needs Chrome or Edge on desktop. Safari and Firefox lack the Web Speech API.',
+        false
+      );
+    }
+  }
 
   // If URL hash carries a shared specimen, render it directly.
   tryRestoreFromHash();

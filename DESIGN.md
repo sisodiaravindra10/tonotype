@@ -1088,3 +1088,41 @@ Because the hero is `display: none` during sessions, returning via `New session`
 - ❌ No re-trigger of entrance animations on tab focus, scroll, or hover. One entrance per page load (plus the deliberate replay after New session).
 - ❌ No animation on the specimen feed beyond the existing word-rise. The choreography belongs to the chrome's first impression, not the content.
 - ❌ The reveal system never touches elements with their own visibility state machines.
+
+---
+
+## 20. v0.9.1 — Honest Microphone Diagnosis & Browser Support
+
+A bug-fix patch. The chrome reported "mic blocked" for every audio failure, which was wrong for most of them and gave deployed-site visitors no real way to recover.
+
+### What was conflated, now separated
+
+`diagnoseMicError(err)` maps the DOMException name to an accurate title + recovery line:
+
+| Error name | Title | Why it really happened |
+|---|---|---|
+| `NotAllowedError` / `SecurityError` | Microphone permission denied. | User denied or dismissed the prompt; browser may be remembering an earlier block. |
+| `NotFoundError` / `OverconstrainedError` | No microphone found. | No input device. |
+| `NotReadableError` / `AbortError` | Microphone is busy. | Held by another app/tab (Zoom, Meet, recorder). |
+| default | Could not start the microphone. | Unknown; reload and allow. |
+
+Speech-recognition errors are split too: `service-not-allowed` (Google's speech service declined: network, region, or a non-Chrome browser) now reads "Speech recognition unavailable" and explicitly notes the **mic works, the service is the blocker** — distinct from `not-allowed` (mic permission).
+
+### Browser-support gate
+
+At boot, `detectSupport()` checks secure context + `getUserMedia` + Web Speech. Unsupported browsers get told the truth before hitting a dead end:
+
+- No mic / insecure context: "Microphone unavailable here. Open in Chrome or Edge on desktop."
+- Mic but no Web Speech (Safari, Firefox, iOS): "Limited support. The live preview works, but turning spoken words into type needs Chrome or Edge." The live demo word genuinely still works there (pitch + loudness only, no transcription), so the message is accurate, not a blanket reject.
+
+The gate is skipped when viewing a shared `#s=` specimen (no mic needed to read one).
+
+### Deployment
+
+`vercel.json` sets `Permissions-Policy: microphone=(self), camera=(), geolocation=()` explicitly. Same-origin already permits the mic by default; this removes any ambiguity and protects against host-default changes or future embedding.
+
+### Anti-patterns this closes
+
+- ❌ One error message for many causes. Each failure now names its own cause and fix.
+- ❌ Calling a speech-service outage a "mic block". The mic and the transcription service fail independently and say so.
+- ❌ Letting Safari/Firefox/iOS users hit a silent dead end. They are told what works and what needs Chrome.
